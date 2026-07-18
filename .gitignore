@@ -3,6 +3,7 @@
 .env.*.local
 private-import/
 副本-EAKI Products 2026.xlsx
+~$*.xlsx
 node_modules/
 .next/
 dist/
