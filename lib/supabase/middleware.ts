@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicConfig } from "./config";
 
 function isProtectedPath(pathname: string) {
-  return pathname.startsWith("/inventory") || pathname.startsWith("/admin") || pathname.startsWith("/operations");
+  return pathname.startsWith("/inventory") || pathname.startsWith("/admin") || pathname.startsWith("/operations") || pathname.startsWith("/logs");
 }
 
 export async function updateSupabaseSession(request: NextRequest) {

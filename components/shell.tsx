@@ -3,6 +3,7 @@ import Link from "next/link";
 const links = [
   ["库存", "/inventory"],
   ["新产品", "/admin/products/new"],
+  ["日志", "/logs"],
 ];
 
 export function Shell({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
