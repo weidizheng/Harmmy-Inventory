@@ -42,13 +42,11 @@ export function ProductCards({
             <p>{product.ipZh}{product.ipEn && product.ipEn !== product.ipZh ? ` / ${product.ipEn}` : ""} · {product.productType}</p>
             {product.sizeText && <p className="product-size">尺寸：{product.sizeText}</p>}
             <div className="quantities" aria-label="箱规"><span>中盒件数<b>{product.unitsPerInner ?? "—"}</b></span><span>每箱中盒<b>{product.innersPerCarton ?? "—"}</b></span><span>每箱总数<b>{product.quantityPerCarton ?? "—"}</b></span></div>
-            {product.unitsPerInner && product.innersPerCarton && product.quantityPerCarton && <p className="carton-check">箱规核对：{product.unitsPerInner} × {product.innersPerCarton} = {product.quantityPerCarton} 件</p>}
-            {product.warehouseName && <p className="inventory-summary">{product.warehouseName} 库存：箱 {product.inventory.cartonQty} · 端 {product.inventory.innerQty} · 盒 {product.inventory.unitQty}</p>}
+            {product.warehouseName && <p className="inventory-summary">{product.warehouseName} 库存：箱 {product.inventory.cartonQty} · 端 {product.inventory.innerQty} · 盒 {product.inventory.unitQty} · 折合总数 {product.inventoryTotalUnits}</p>}
             {adjustmentMode ? <div className="card-adjuster" aria-label={`${product.nameZh} 库存调整`}>
               <strong>调整后库存</strong>
               {([['carton', '箱'], ['inner', '端'], ['unit', '盒']] as const).map(([unit, label]) => <div className="adjust-unit" key={unit}><span>{label}</span><button type="button" disabled={projected[unit] <= 0} onClick={() => onAdjust?.(product.id, unit, -1)}>−</button><b>{projected[unit]}</b><button type="button" onClick={() => onAdjust?.(product.id, unit, 1)}>＋</button></div>)}
             </div> : product.warehouseId && <Link className="operation-link" href={`/operations/new?product=${product.id}`}>库存操作</Link>}
-            {product.detailsRaw && <details><summary>查看原始 Details</summary><p className="details-raw">{product.detailsRaw}</p></details>}
           </div>
         </article>;
       })}

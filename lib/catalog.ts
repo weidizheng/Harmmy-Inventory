@@ -18,6 +18,7 @@ export interface CatalogProduct {
   warehouseId: string | null;
   warehouseName: string | null;
   inventory: { cartonQty: number; innerQty: number; unitQty: number; isEnabled: boolean };
+  inventoryTotalUnits: number;
 }
 
 type CatalogRow = {
@@ -76,28 +77,36 @@ export async function getCatalogProducts(): Promise<CatalogProduct[]> {
     return signedImage.signedUrl;
   }));
 
-  return rows.map((product, index) => ({
-    id: product.id,
-    sku: product.sku,
-    nameZh: product.product_name_zh,
-    nameEn: product.product_name_en ?? "",
-    ipZh: product.primary_ip?.display_name ?? product.primary_ip?.name ?? "未分类 IP",
-    ipEn: product.primary_ip?.name ?? "",
-    productType: product.product_type,
-    unitsPerInner: product.units_per_inner,
-    innersPerCarton: product.inners_per_carton,
-    quantityPerCarton: product.quantity_per_carton_source,
-    sizeText: product.size_text,
-    detailsRaw: product.details_raw,
-    isPinned: product.is_pinned,
-    imageUrl: imageUrls[index],
-    warehouseId: warehouse?.id ?? null,
-    warehouseName: warehouse?.name ?? null,
-    inventory: {
+  const catalog = rows.map((product, index) => {
+    const inventory = {
       cartonQty: balanceByProduct.get(product.id)?.carton_qty ?? 0,
       innerQty: balanceByProduct.get(product.id)?.inner_qty ?? 0,
       unitQty: balanceByProduct.get(product.id)?.unit_qty ?? 0,
       isEnabled: balanceByProduct.get(product.id)?.is_enabled ?? false,
-    },
-  }));
+    };
+    const inventoryTotalUnits = inventory.cartonQty * (product.quantity_per_carton_source ?? 0)
+      + inventory.innerQty * (product.units_per_inner ?? 0)
+      + inventory.unitQty;
+    return {
+      id: product.id,
+      sku: product.sku,
+      nameZh: product.product_name_zh,
+      nameEn: product.product_name_en ?? "",
+      ipZh: product.primary_ip?.display_name ?? product.primary_ip?.name ?? "未分类 IP",
+      ipEn: product.primary_ip?.name ?? "",
+      productType: product.product_type,
+      unitsPerInner: product.units_per_inner,
+      innersPerCarton: product.inners_per_carton,
+      quantityPerCarton: product.quantity_per_carton_source,
+      sizeText: product.size_text,
+      detailsRaw: product.details_raw,
+      isPinned: product.is_pinned,
+      imageUrl: imageUrls[index],
+      warehouseId: warehouse?.id ?? null,
+      warehouseName: warehouse?.name ?? null,
+      inventory,
+      inventoryTotalUnits,
+    };
+  });
+  return catalog.sort((left, right) => right.inventoryTotalUnits - left.inventoryTotalUnits || left.nameZh.localeCompare(right.nameZh, "zh-CN"));
 }

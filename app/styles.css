@@ -37,10 +37,6 @@ code { color:#5a6272; font-size:11px; }
 .quantities { display:flex; gap:13px; color:var(--muted); font-size:11px; }
 .quantities b { display:block; color:var(--ink); font-size:16px; }
 .product-size { margin-bottom:6px !important; }
-.carton-check { margin-top:9px; color:#4a4680 !important; font-weight:700; }
-details { margin-top:9px; color:#4a4680; font-size:12px; }
-summary { cursor:pointer; font-weight:700; }
-.details-raw { margin:5px 0 0 !important; white-space:pre-wrap; }
 .status { display:inline-block; margin-top:10px; padding:3px 6px; border-radius:4px; background:#e5f5ec; color:var(--green); font-size:10px; font-weight:700; }
 .out_of_stock { background:#fff2dd; color:var(--amber); }
 .not_enabled { background:#eceef2; color:#596170; }
