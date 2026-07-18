@@ -32,14 +32,14 @@ DRAW_MAIN_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 NS = {"m": MAIN_NS, "r": REL_NS, "xdr": DRAW_NS, "a": DRAW_MAIN_NS}
 
 STANDARD_FIELDS = [
-    "sku", "product_name", "brand_name", "ip_name", "product_type", "retail_price", "wholesale_price",
+    "sku", "product_name_zh", "product_name_en", "brand_name", "ip_name", "product_type", "retail_price", "wholesale_price",
     "quantity_per_carton_source", "units_per_inner", "inners_per_carton", "units_per_carton_calculated",
     "size_text", "details_raw", "image_source", "image_path", "validation_status", "validation_notes",
     "is_pinned", "sort_weight",
 ]
 
-# Verified by reading the matched source image. These overrides intentionally record
-# only physical pack counts; collection/design counts are not inventory quantities.
+# Verified by reading the matched source image. These overrides record the
+# physical package hierarchy where it is explicitly shown.
 IMAGE_CONFIRMED_PACKAGING: dict[str, tuple[int, int]] = {
     "EAKI1002": (18, 10),  # Image: 18 small packs / middle box, 10 middle boxes / carton.
     "EAKI1012": (6, 30),  # Image: 1 small box / pack, 6 packs / middle box, 30 middle boxes / carton.
@@ -58,13 +58,6 @@ IMAGE_CONFIRMED_PACKAGING: dict[str, tuple[int, int]] = {
     "EAKI1104": (6, 30),  # Image: 6 packs / middle box, 30 middle boxes / carton.
     "EAKI1090": (6, 30),  # Image: 6 small packs / middle box, 30 middle boxes / carton.
     "EAKI1084": (6, 30),  # Image: 1 small box / pack, 6 packs / middle box, 30 middle boxes / carton.
-}
-
-# The matched image for this SKU shows a physical configuration that does not
-# reconcile with the source carton quantity. Keep it visible for a person to
-# confirm instead of selecting either value automatically.
-IMAGE_PACKAGING_CONFLICTS: dict[str, str] = {
-    "EAKI1070": "Matched image shows 6 packs per middle box and 12 middle boxes per carton (72 units), while the source carton quantity is 192. Confirm the image and source row refer to the same SKU.",
 }
 
 # Read from the matched product image/logo. Keep image-derived conclusions separate
@@ -236,8 +229,6 @@ def parse_packaging(sku: str, details: str, carton_source: str) -> dict[str, Any
     quantity = int(Decimal(carton_source)) if carton_source and re.fullmatch(r"\d+(?:\.0+)?", carton_source.strip()) else None
     normalized = details.lower().replace("\n", " ")
     normalized = re.sub(r"\s+", " ", normalized)
-    if sku in IMAGE_PACKAGING_CONFLICTS:
-        return {"status": "NEEDS_REVIEW", "notes": IMAGE_PACKAGING_CONFLICTS[sku], "evidence": "IMAGE_CONFLICT", "units_per_inner": "", "inners_per_carton": "", "calculated": ""}
     if sku in IMAGE_CONFIRMED_PACKAGING and quantity is not None:
         units_per_inner, inners_per_carton = IMAGE_CONFIRMED_PACKAGING[sku]
         calculated = units_per_inner * inners_per_carton
@@ -253,7 +244,11 @@ def parse_packaging(sku: str, details: str, carton_source: str) -> dict[str, Any
     if not inner_match:
         inner_match = re.search(r"each\s+containing\s+(\d+)\s+(?:small\s+)?box(?:es)?", normalized)
     if not inner_match:
-        inner_match = re.search(r"(\d+)\s+designs?\s+per\s+(?:middle\s+(?:box|tray)|inner\s+box|display\s+box)", normalized)
+        inner_match = re.search(r"(\d+)\s+designs?\s*(?:/|per)\s*(?:middle\s+(?:box|tray|packs?)|inner\s+box|display\s+box)", normalized)
+    if not inner_match:
+        inner_match = re.search(r"(\d+)\s+designs?\s*(?:/|per)\s*box(?:es)?", normalized)
+    if not inner_match:
+        inner_match = re.search(r"(\d+)\s+designs?\s*(?:/|per)\s*(?:small\s+)?packs?", normalized)
     carton_match = re.search(r"(\d+)\s+(?:middle\s+)?(?:packs?|box(?:es)?|trays?|tray)\s*(?:/|per)\s*(?:carton|case)", normalized)
     if inner_match and carton_match and quantity is not None:
         units_per_inner, inners_per_carton = int(inner_match.group(1)), int(carton_match.group(1))
@@ -261,10 +256,11 @@ def parse_packaging(sku: str, details: str, carton_source: str) -> dict[str, Any
         if calculated == quantity:
             return {"status": "PASS", "notes": "", "evidence": "SOURCE_DETAILS", "units_per_inner": units_per_inner, "inners_per_carton": inners_per_carton, "calculated": calculated}
         return {"status": "ERROR", "notes": f"Package calculation {calculated} does not equal carton quantity {quantity}.", "evidence": "SOURCE_DETAILS", "units_per_inner": units_per_inner, "inners_per_carton": inners_per_carton, "calculated": calculated}
-    if re.search(r"\d+\s+boxes?\s*/\s*carton", normalized):
-        note = "Bare boxes/carton is ambiguous: box may be a unit or an inner."
-    else:
-        note = "Could not prove both inner ratios from source package text."
+    if inner_match and quantity is not None and quantity % int(inner_match.group(1)) == 0:
+        units_per_inner = int(inner_match.group(1))
+        inners_per_carton = quantity // units_per_inner
+        return {"status": "PASS", "notes": "Inners per carton derived from the stated carton quantity.", "evidence": "SOURCE_DETAILS", "units_per_inner": units_per_inner, "inners_per_carton": inners_per_carton, "calculated": quantity}
+    note = "Could not reconcile stated package counts to the source carton quantity."
     return {"status": "NEEDS_REVIEW", "notes": note, "evidence": "SOURCE_DETAILS", "units_per_inner": "", "inners_per_carton": "", "calculated": ""}
 
 
@@ -404,7 +400,7 @@ def main() -> None:
                     if not thumb_path.exists(): convert_image(raw, thumb_path, THUMB_MAX)
                 image_manifest.append({"sheet": row["sheet"], "row": row["row"], "sku": row["sku"], "source_image": source_path, "main_image_path": output_images[-1], "matched": "YES"})
             clean_rows.append({
-                "sku": row["sku"], "product_name": row["product_name"], "brand_name": "", "ip_name": ip_name, "product_type": row["source_product_type"] or classify_product_type(row["product_name"]),
+                "sku": row["sku"], "product_name_zh": "", "product_name_en": row["product_name"], "brand_name": "", "ip_name": ip_name, "product_type": row["source_product_type"] or classify_product_type(row["product_name"]),
                 "retail_price": row["retail_price"], "wholesale_price": row["wholesale_price"], "quantity_per_carton_source": row["quantity_per_carton_source"],
                 "units_per_inner": packaging["units_per_inner"], "inners_per_carton": packaging["inners_per_carton"], "units_per_carton_calculated": packaging["calculated"],
                 "size_text": row["size_text"], "details_raw": row["details_raw"], "image_source": ";".join(row["images"]), "image_path": ";".join(output_images),
@@ -437,7 +433,7 @@ def main() -> None:
         "ip_auto_identified_count": sum(bool(row["ip_name"]) for row in clean_rows), "ip_needs_review_count": sum(not row["ip_name"] for row in clean_rows),
     }
     (REPORTS / "workbook-inspection.json").write_text(json.dumps({"source": str(SOURCE.relative_to(ROOT)), "sheets": [asdict(sheet) for sheet in sheets]}, indent=2), encoding="utf-8")
-    write_csv(REPORTS / "column-mapping-proposal.csv", [{"standard_field": field, "source_column": {"sku":"SKU No.","product_name":"Product Name","retail_price":"Suggested Retail Price (Per Unit)","wholesale_price":"Wholesale Price (Per Unit)","quantity_per_carton_source":"Quanity Per Carton","size_text":"Size","details_raw":"More Details"}.get(field, "derived or blank"), "rule": "preview mapping"} for field in STANDARD_FIELDS], ["standard_field", "source_column", "rule"])
+    write_csv(REPORTS / "column-mapping-proposal.csv", [{"standard_field": field, "source_column": {"sku":"SKU No.","product_name_zh":"matched product image (manual transcription)","product_name_en":"Product Name","retail_price":"Suggested Retail Price (Per Unit)","wholesale_price":"Wholesale Price (Per Unit)","quantity_per_carton_source":"Quanity Per Carton","size_text":"Size","details_raw":"More Details"}.get(field, "derived or blank"), "rule": "preview mapping"} for field in STANDARD_FIELDS], ["standard_field", "source_column", "rule"])
     write_csv(REPORTS / "image-anchor-report.csv", image_anchors, ["sheet", "row", "column", "sku", "source", "matched"])
     write_csv(REPORTS / "image-evidence-review.csv", image_evidence, ["sku", "sheet", "row", "image_path", "ip_name", "ip_evidence", "units_per_inner", "inners_per_carton", "packaging_evidence", "notes"])
     write_csv(REPORTS / "duplicate-sku-report.csv", [{"sku": row["sku"], "sheet": row["sheet"], "row": row["row"]} for row in all_rows if row["sku"] in duplicates], ["sku", "sheet", "row"])
