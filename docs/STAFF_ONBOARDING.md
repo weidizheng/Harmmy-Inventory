@@ -7,18 +7,23 @@ All enabled staff have the same application permissions. `staff.role` remains
 ## Create each account
 
 In the Supabase Dashboard, open **Authentication → Users → Add user**. Create
-one email-and-password account for each person:
+an email-and-password account for each person using these fixed internal
+identifiers. The website hides these emails and shows only the person's name.
 
-- Henry
-- Angela
-- Harry
-- Terrence
+| Staff name | Auth email |
+| --- | --- |
+| Henry | `henry@harmmy.example` |
+| Angela | `angela@harmmy.example` |
+| Harry | `harry@harmmy.example` |
+| Terrence | `terrence@harmmy.example` |
 
-Use a private work email for each account and share the initial password only
-with that person. Do not add a service-role key to the browser.
+Choose a different strong password for each account and share it only with
+that person. If the dashboard offers **Auto Confirm User**, enable it for these
+manually created internal accounts. Do not add a service-role key to the
+browser.
 
 The database trigger automatically creates an inactive row in `public.staff`
-for every new Auth user. In **Table Editor → staff**, set the matching row's
+for every new Auth user. In **Table Editor → staff**, set each matching row's
 `display_name` to the person's name and set `is_active` to `true`.
 
 ## Security behaviour

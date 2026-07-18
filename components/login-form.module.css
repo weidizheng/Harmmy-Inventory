@@ -1,0 +1,17 @@
+.staffPicker {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 7px 0 16px;
+}
+
+.staffPicker button {
+  margin: 0;
+}
+
+.staffPicker button.selected {
+  border-color: var(--brand);
+  background: #eeecff;
+  color: #3f35a7;
+  font-weight: 700;
+}

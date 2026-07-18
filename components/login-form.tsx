@@ -3,10 +3,18 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "../lib/supabase/client";
+import styles from "./login-form.module.css";
+
+const staffAccounts = {
+  Henry: "henry@harmmy.example",
+  Angela: "angela@harmmy.example",
+  Harry: "harry@harmmy.example",
+  Terrence: "terrence@harmmy.example",
+} as const;
 
 export function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [staffName, setStaffName] = useState<keyof typeof staffAccounts>("Henry");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,9 +24,9 @@ export function LoginForm() {
     setIsSubmitting(true);
     setMessage("");
     const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: staffAccounts[staffName], password });
     if (error) {
-      setMessage("邮箱或密码不正确。请联系 Henry 确认账号是否已启用。");
+      setMessage("密码不正确，或该账号尚未启用。请联系 Henry 确认。");
       setIsSubmitting(false);
       return;
     }
@@ -27,7 +35,10 @@ export function LoginForm() {
   }
 
   return <form onSubmit={handleSubmit}>
-    <label>邮箱<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+    <label>选择员工</label>
+    <div className={styles.staffPicker} role="group" aria-label="选择员工">
+      {(Object.keys(staffAccounts) as Array<keyof typeof staffAccounts>).map((name) => <button key={name} type="button" className={staffName === name ? styles.selected : ""} onClick={() => setStaffName(name)}>{name}</button>)}
+    </div>
     <label>密码<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
     {message && <p className="notice">{message}</p>}
     <button className="primary" disabled={isSubmitting}>{isSubmitting ? "登录中…" : "登录"}</button>
