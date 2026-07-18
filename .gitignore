@@ -10,3 +10,6 @@ dist/
 coverage/
 __pycache__/
 *.tsbuildinfo
+
+.vercel
+.env*

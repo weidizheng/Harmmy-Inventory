@@ -1,0 +1,10 @@
+# Local-only data, credentials, dependencies, and build output must not be sent
+# to the public deployment service.
+.env*
+.git
+.next
+.vercel
+node_modules
+private-import
+*.xlsx
+tsconfig.tsbuildinfo
