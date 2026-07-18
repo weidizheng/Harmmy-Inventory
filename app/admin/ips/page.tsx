@@ -1,0 +1,2 @@
+import { Shell } from "../../../components/shell";
+export default function IpsPage() { return <Shell title="IP categories"><section className="panel"><h2>Configured examples</h2><div className="chips"><span>Naruto</span><span>One Piece</span><span>JJK</span><span>SPY×FAMILY</span><span>Frieren</span></div><p>IP is independent from product type, catalog status, and inventory status.</p></section></Shell>; }

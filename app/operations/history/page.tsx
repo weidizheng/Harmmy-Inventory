@@ -1,0 +1,2 @@
+import { Shell } from "../../../components/shell";
+export default function OperationsHistory() { return <Shell title="Operation history"><section className="panel"><table><thead><tr><th>Operation</th><th>Type</th><th>Status</th><th>Operator</th><th>Time</th></tr></thead><tbody><tr><td>LOCAL-0001</td><td>OUTBOUND</td><td>CONFIRMED</td><td>Demo Warehouse</td><td>Mock data</td></tr></tbody></table><p>Confirmed records are immutable; errors require a reversal, correction, or adjustment.</p></section></Shell>; }

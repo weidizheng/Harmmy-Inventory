@@ -1,0 +1,2 @@
+import { Shell } from "../../../components/shell";
+export default function StaffPage() { return <Shell title="Staff access"><section className="panel"><h2>Security design placeholder</h2><p>Each employee will use a distinct password, stored only as a hash. Browser clients never query password or session-token tables directly.</p><div className="chips"><span>admin</span><span>warehouse</span><span>sales</span><span>viewer</span></div></section></Shell>; }
