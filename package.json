@@ -11,6 +11,7 @@
     "inspect:products": "python scripts/product-import/inspect_workbook.py"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.57.4",
     "next": "^15.5.3",
     "react": "^19.1.1",
