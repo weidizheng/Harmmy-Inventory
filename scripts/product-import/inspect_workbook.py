@@ -255,15 +255,19 @@ def main() -> None:
             for row_no, cells in rows:
                 if row_no <= header_row:
                     continue
-                value = lambda header: cells.get(columns.get(header, -1), "")
+                def value(*headers: str) -> str:
+                    for header in headers:
+                        if header in columns:
+                            return cells.get(columns[header], "")
+                    return ""
                 sku, product_name = normalized_sku(value("skuno")), value("productname").strip()
                 if not sku and not product_name:
                     continue
                 all_rows.append({
                     "sheet": name, "row": row_no, "source_columns": {inverse.get(k, str(k)): v for k, v in cells.items()},
-                    "sku": sku, "product_name": product_name, "retail_price": value("suggestedretailpriceperunit"), "wholesale_price": value("wholesalepriceperunit"),
+                    "sku": sku, "product_name": product_name, "retail_price": value("suggestedretailpriceperunit"), "wholesale_price": value("wholesalepriceperunit", "wholesaleunitprice"),
                     "retail_carton": value("suggestedretailvaluepercarton"), "wholesale_carton": value("wholesaletotalpricepercarton"), "quantity_per_carton_source": value("quanitypercarton") or value("quantitypercarton"),
-                    "size_text": value("size"), "details_raw": value("moredetails"), "images": image_by_row.get(row_no, []),
+                    "size_text": value("size"), "details_raw": value("moredetails"), "source_product_type": value("producttype"), "images": image_by_row.get(row_no, []),
                 })
             for image in images:
                 image_anchors.append({"sheet": name, "row": image["row"], "column": image["column"], "source": image["source"]})
@@ -307,7 +311,7 @@ def main() -> None:
                     if not thumb_path.exists(): convert_image(raw, thumb_path, THUMB_MAX)
                 image_manifest.append({"sheet": row["sheet"], "row": row["row"], "sku": row["sku"], "source_image": source_path, "main_image_path": output_images[-1], "matched": "YES"})
             clean_rows.append({
-                "sku": row["sku"], "product_name": row["product_name"], "brand_name": "", "ip_name": ip_name, "product_type": classify_product_type(row["product_name"]),
+                "sku": row["sku"], "product_name": row["product_name"], "brand_name": "", "ip_name": ip_name, "product_type": row["source_product_type"] or classify_product_type(row["product_name"]),
                 "retail_price": row["retail_price"], "wholesale_price": row["wholesale_price"], "quantity_per_carton_source": row["quantity_per_carton_source"],
                 "units_per_inner": packaging["units_per_inner"], "inners_per_carton": packaging["inners_per_carton"], "units_per_carton_calculated": packaging["calculated"],
                 "size_text": row["size_text"], "details_raw": row["details_raw"], "image_source": ";".join(row["images"]), "image_path": ";".join(output_images),
