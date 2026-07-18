@@ -79,6 +79,7 @@ th,td { padding:10px; border-bottom:1px solid var(--line); font-size:13px; text-
 .operation-message { margin:0; color:#157347; font-weight:700; }
 button:disabled { cursor:not-allowed; opacity:.55; }
 .inventory-toolbar { justify-content:flex-end; }
+.history-link { display:inline-block; padding:8px 10px; border:1px solid #cfd5df; border-radius:7px; background:#fff; color:var(--ink); font-size:12px; font-weight:700; }
 .card-adjuster { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:10px; padding:9px; border:1px solid #d9d5ff; border-radius:8px; background:#f7f6ff; }
 .card-adjuster > strong { grid-column:1 / -1; color:#4a4680; font-size:12px; }
 .adjust-unit { display:grid; grid-template-columns:25px 1fr 25px; gap:3px; align-items:center; text-align:center; }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CatalogProduct } from "../lib/catalog";
 import { createSupabaseBrowserClient } from "../lib/supabase/client";
@@ -57,7 +58,7 @@ export function InventoryWorkspace({ products }: Readonly<{ products: CatalogPro
 
   return <>
     <div className="toolbar inventory-toolbar">
-      {!editing ? <button type="button" className="primary" onClick={() => setEditing(true)}>调整库存</button> : <><button type="button" onClick={stopEditing}>取消调整</button><button type="button" className="primary" disabled={!lines.length} onClick={() => setShowSummary(true)}>查看并提交（{lines.length}）</button></>}
+      {!editing ? <><Link className="history-link" href="/operations/history">操作记录</Link><button type="button" className="primary" onClick={() => setEditing(true)}>调整库存</button></> : <><button type="button" onClick={stopEditing}>取消调整</button><button type="button" className="primary" disabled={!lines.length} onClick={() => setShowSummary(true)}>查看并提交（{lines.length}）</button></>}
     </div>
     <div className="notice">{editing ? "调整模式：＋代表入库，−代表出库。所有修改先进入待提交清单，统一核对后才写入库存。" : "已显示 Supabase 中的真实商品；可搜索 SKU、中文名、英文名和 IP。图片仅向已登录员工开放。"}</div>
     {message && <p className={message.startsWith("未能") ? "operation-message error" : "operation-message"}>{message}</p>}
