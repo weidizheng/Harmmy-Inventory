@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "tsc --noEmit",
     "test": "vitest run",
-    "inspect:products": "python scripts/product-import/inspect_workbook.py"
+    "inspect:products": "python scripts/product-import/inspect_workbook.py",
+    "import:best-sellers": "node scripts/product-import/import-best-sellers-to-supabase.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
