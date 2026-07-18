@@ -287,6 +287,24 @@ def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> None
         writer.writerows(rows)
 
 
+def packaging_review_row_html(row: dict[str, Any]) -> str:
+    image_cell = "No matched image"
+    if row["review_image_path"]:
+        image_path = html.escape(row["review_image_path"], quote=True)
+        sku = html.escape(str(row["sku"]), quote=True)
+        image_cell = f'<a href="{image_path}"><img src="{image_path}" alt="{sku}"></a>'
+    return (
+        "<tr>"
+        f"<td>{html.escape(str(row['sku']))}</td>"
+        f"<td>{html.escape(str(row['product_name']))}</td>"
+        f"<td>{html.escape(str(row['quantity_per_carton_source']))}</td>"
+        f"<td>{image_cell}</td>"
+        f"<td class=\"details\">{html.escape(str(row['source_details']))}</td>"
+        f"<td>{html.escape(str(row['evidence']))}</td>"
+        f"<td>{html.escape(str(row['notes']))}</td>"
+        "</tr>"
+    )
+
 def convert_image(raw: bytes, destination: Path, max_size: int) -> None:
     with Image.open(BytesIO(raw)) as source:
         image = ImageOps.exif_transpose(source)
@@ -392,7 +410,12 @@ def main() -> None:
                 "size_text": row["size_text"], "details_raw": row["details_raw"], "image_source": ";".join(row["images"]), "image_path": ";".join(output_images),
                 "validation_status": status, "validation_notes": " ".join(errors + notes + warnings), "is_pinned": "false", "sort_weight": 0,
             })
-            package_report.append({"sheet": row["sheet"], "row": row["row"], "sku": row["sku"], "source_details": row["details_raw"], **packaging})
+            review_image_path = f"../extracted-images/{output_images[0]}" if output_images else ""
+            package_report.append({
+                "sheet": row["sheet"], "row": row["row"], "sku": row["sku"], "product_name": row["product_name"],
+                "quantity_per_carton_source": row["quantity_per_carton_source"], "review_image_path": review_image_path,
+                "source_details": row["details_raw"], **packaging,
+            })
             if packaging["evidence"] == "IMAGE" or ip_evidence == "IMAGE":
                 image_evidence.append({"sku": row["sku"], "sheet": row["sheet"], "row": row["row"], "image_path": row["images"][0] if row["images"] else "", "ip_name": ip_name, "ip_evidence": ip_evidence, "units_per_inner": packaging["units_per_inner"], "inners_per_carton": packaging["inners_per_carton"], "packaging_evidence": packaging["evidence"], "notes": packaging["notes"]})
             price_report.append({"sheet": row["sheet"], "row": row["row"], "sku": row["sku"], "retail_price": row["retail_price"], "wholesale_price": row["wholesale_price"], "retail_carton": row["retail_carton"], "wholesale_carton": row["wholesale_carton"], "quantity": row["quantity_per_carton_source"], **prices})
@@ -418,13 +441,22 @@ def main() -> None:
     write_csv(REPORTS / "image-anchor-report.csv", image_anchors, ["sheet", "row", "column", "sku", "source", "matched"])
     write_csv(REPORTS / "image-evidence-review.csv", image_evidence, ["sku", "sheet", "row", "image_path", "ip_name", "ip_evidence", "units_per_inner", "inners_per_carton", "packaging_evidence", "notes"])
     write_csv(REPORTS / "duplicate-sku-report.csv", [{"sku": row["sku"], "sheet": row["sheet"], "row": row["row"]} for row in all_rows if row["sku"] in duplicates], ["sku", "sheet", "row"])
-    write_csv(REPORTS / "packaging-review-report.csv", package_report, ["sheet", "row", "sku", "status", "evidence", "notes", "units_per_inner", "inners_per_carton", "calculated", "source_details"])
+    write_csv(REPORTS / "packaging-review-report.csv", package_report, ["sheet", "row", "sku", "product_name", "quantity_per_carton_source", "review_image_path", "status", "evidence", "notes", "units_per_inner", "inners_per_carton", "calculated", "source_details"])
     write_csv(REPORTS / "price-validation-report.csv", price_report, ["sheet", "row", "sku", "status", "notes", "retail_price", "wholesale_price", "retail_carton", "wholesale_carton", "quantity", "retail_difference", "wholesale_difference"])
     write_csv(OUTPUT / "products-clean-preview.csv", clean_rows, STANDARD_FIELDS)
     write_csv(OUTPUT / "image-manifest-preview.csv", image_manifest, ["sheet", "row", "sku", "source_image", "main_image_path", "matched"])
     (REPORTS / "import-summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     rows_html = "".join(f"<tr><th>{html.escape(key)}</th><td>{html.escape(str(value))}</td></tr>" for key, value in summary.items())
     (REPORTS / "data-quality-report.html").write_text(f"<!doctype html><title>Harmmy import quality</title><style>body{{font-family:Arial;margin:2rem}}table{{border-collapse:collapse}}th,td{{padding:.5rem;border:1px solid #ddd;text-align:left}}th{{background:#f4f4f4}}</style><h1>Workbook data-quality report</h1><p>Preview only; no product was imported or uploaded.</p><table>{rows_html}</table>", encoding="utf-8")
+    review_rows = [row for row in package_report if row["status"] in {"NEEDS_REVIEW", "ERROR"}]
+    review_table = "".join(packaging_review_row_html(row) for row in review_rows)
+    (REPORTS / "packaging-review.html").write_text(
+        "<!doctype html><html lang=\"zh-CN\"><meta charset=\"utf-8\"><title>待审核箱规</title>"
+        "<style>body{font-family:Arial,'Microsoft YaHei',sans-serif;margin:24px;background:#f7f7f7;color:#222}h1{margin-bottom:4px}p{color:#555}table{border-collapse:collapse;width:100%;background:#fff}th,td{border:1px solid #ddd;padding:10px;text-align:left;vertical-align:top}th{background:#1f4e78;color:#fff;position:sticky;top:0}img{width:140px;max-height:210px;object-fit:contain;display:block}.details{white-space:pre-wrap;min-width:280px;line-height:1.45}</style>"
+        f"<h1>待审核箱规（{len(review_rows)} 条）</h1><p>每行保留原始图片、Excel 的 More Details 与 Quanity Per Carton，供人工确认；点击图片可放大。</p>"
+        "<table><thead><tr><th>SKU</th><th>商品名</th><th>原始每箱数量</th><th>图片</th><th>原始 Details</th><th>证据</th><th>复核原因</th></tr></thead>"
+        f"<tbody>{review_table}</tbody></table></html>", encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2))
 
 
