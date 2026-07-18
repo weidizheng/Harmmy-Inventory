@@ -12,10 +12,8 @@ identifiers. The website hides these emails and shows only the person's name.
 
 | Staff name | Auth email |
 | --- | --- |
-| Henry | `henry@harmmy.example` |
-| Angela | `angela@harmmy.example` |
-| Harry | `harry@harmmy.example` |
-| Terrence | `terrence@harmmy.example` |
+| Henry | `henryma107@yahoo.com` |
+| Terrence | `weidhaobang@gmail.com` |
 
 Choose a different strong password for each account and share it only with
 that person. If the dashboard offers **Auto Confirm User**, enable it for these

@@ -6,10 +6,8 @@ import { createSupabaseBrowserClient } from "../lib/supabase/client";
 import styles from "./login-form.module.css";
 
 const staffAccounts = {
-  Henry: "henry@harmmy.example",
-  Angela: "angela@harmmy.example",
-  Harry: "harry@harmmy.example",
-  Terrence: "terrence@harmmy.example",
+  Henry: "henryma107@yahoo.com",
+  Terrence: "weidhaobang@gmail.com",
 } as const;
 
 export function LoginForm() {
