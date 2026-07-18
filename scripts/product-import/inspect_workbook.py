@@ -76,8 +76,7 @@ IMAGE_CONFIRMED_IPS: dict[str, str] = {
     "EAKI1089": "The Elusive Samurai", "EAKI1092": "Katekyo Hitman Reborn!",
 }
 
-# Best Sellers names transcribed from the matched product image. Two records
-# whose images do not show a formal Chinese title intentionally remain blank.
+# Best Sellers names transcribed from the matched product image.
 IMAGE_CONFIRMED_CHINESE_NAMES: dict[str, str] = {
     "HZMB-M1301": "航海王 艾格赫德篇-毛绒系列",
     "EAKI1007": "间谍过家家-猫猫毛绒玩偶", "EAKI1008": "间谍过家家-动物派对毛绒娃娃",
@@ -98,6 +97,13 @@ IMAGE_CONFIRMED_CHINESE_NAMES: dict[str, str] = {
     "EAKI1108": "夏目友人帐-四季之旅系列毛绒挂件", "EAKI11109": "名侦探柯南-跨步走盲盒手办",
     "PQHZ-M101": "排球少年！雕金徽章", "EAKI11110": "排球少年！！搪胶毛绒挂件",
     "EAKI11112": "守护甜心-甜心萌宠派对",
+}
+
+# Names supplied by the reviewer in the Best Sellers Chinese-name review workbook.
+# These remain distinct from image transcriptions so the import audit trail is clear.
+USER_CONFIRMED_CHINESE_NAMES: dict[str, str] = {
+    "FREN-A101": "葬送的芙莉莲-动物毛绒排队",
+    "JJK-B230": "咒术回战-猫猫乐园",
 }
 
 IP_KEYWORDS = {
@@ -242,6 +248,9 @@ def classify_ip(sku: str, name: str, details: str) -> tuple[str, str, str]:
 
 
 def chinese_name_for(sku: str) -> tuple[str, str]:
+    name = USER_CONFIRMED_CHINESE_NAMES.get(sku, "")
+    if name:
+        return name, "USER_CONFIRMED"
     name = IMAGE_CONFIRMED_CHINESE_NAMES.get(sku, "")
     return name, "IMAGE_CONFIRMED" if name else "NEEDS_CONFIRMATION"
 
@@ -390,6 +399,11 @@ def main() -> None:
                 image_anchors.append({"sheet": name, "row": image["row"], "column": image["column"], "source": image["source"]})
 
         duplicates = {sku for sku, count in Counter(row["sku"] for row in all_rows if row["sku"]).items() if count > 1}
+        import_scope_duplicates = {
+            sku for sku, count in Counter(
+                row["sku"] for row in all_rows if row["sheet"] == "Best Sellers" and row["sku"]
+            ).items() if count > 1
+        }
         clean_rows: list[dict[str, Any]] = []
         image_manifest: list[dict[str, Any]] = []
         package_report: list[dict[str, Any]] = []
@@ -405,7 +419,8 @@ def main() -> None:
             errors = []
             warnings = []
             if not row["sku"]: errors.append("SKU is missing.")
-            if row["sku"] in duplicates: errors.append("SKU is duplicated.")
+            if row["sheet"] == "Best Sellers" and row["sku"] in import_scope_duplicates:
+                errors.append("SKU is duplicated within the Best Sellers import scope.")
             if not row["product_name"]: errors.append("Product name is missing.")
             if packaging["status"] == "ERROR": errors.append(packaging["notes"])
             if prices["status"] == "ERROR": errors.append(prices["notes"])
@@ -464,7 +479,7 @@ def main() -> None:
     summary = {
         "source": str(SOURCE.relative_to(ROOT)), "worksheet_count": len(sheets), "valid_product_rows": len(all_rows),
         "import_scope": "Best Sellers", "import_preview_row_count": sum(row["sheet"] == "Best Sellers" for row in all_rows),
-        "valid_sku_count": len({row["sku"] for row in all_rows if row["sku"]}), "duplicate_sku_count": len(duplicates),
+        "valid_sku_count": len({row["sku"] for row in all_rows if row["sku"]}), "duplicate_sku_count": len(duplicates), "import_scope_duplicate_sku_count": len(import_scope_duplicates),
         "missing_sku_count": sum(not row["sku"] for row in all_rows), "missing_product_name_count": sum(not row["product_name"] for row in all_rows),
         "image_total": len(image_anchors), "matched_image_count": len(image_anchors) - unmatched_images, "unmatched_image_count": unmatched_images, "missing_image_count": missing_images,
         "packaging_pass_count": sum(r["status"] == "PASS" for r in package_report), "packaging_needs_review_count": sum(r["status"] == "NEEDS_REVIEW" for r in package_report), "packaging_error_count": sum(r["status"] == "ERROR" for r in package_report),
@@ -479,7 +494,9 @@ def main() -> None:
     write_csv(REPORTS / "packaging-review-report.csv", package_report, ["sheet", "row", "sku", "product_name", "quantity_per_carton_source", "review_image_path", "status", "evidence", "notes", "units_per_inner", "inners_per_carton", "calculated", "source_details"])
     write_csv(REPORTS / "price-validation-report.csv", price_report, ["sheet", "row", "sku", "status", "notes", "retail_price", "wholesale_price", "retail_carton", "wholesale_carton", "quantity", "retail_difference", "wholesale_difference"])
     write_csv(REPORTS / "best-sellers-chinese-name-review.csv", name_review, ["sku", "product_name_zh", "name_review_status", "product_name_en", "ip_name", "quantity_per_carton_source", "units_per_inner", "inners_per_carton", "review_image_path", "details_raw"])
-    write_csv(OUTPUT / "products-clean-preview.csv", [row for row in clean_rows if row["source_sheet"] == "Best Sellers"], STANDARD_FIELDS)
+    best_sellers_clean_rows = [row for row in clean_rows if row["source_sheet"] == "Best Sellers"]
+    write_csv(OUTPUT / "products-clean-preview.csv", best_sellers_clean_rows, STANDARD_FIELDS)
+    write_csv(OUTPUT / "best-sellers-import-ready.csv", best_sellers_clean_rows, STANDARD_FIELDS)
     write_csv(OUTPUT / "image-manifest-preview.csv", [row for row in image_manifest if row["sheet"] == "Best Sellers"], ["sheet", "row", "sku", "source_image", "main_image_path", "matched"])
     (REPORTS / "import-summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     rows_html = "".join(f"<tr><th>{html.escape(key)}</th><td>{html.escape(str(value))}</td></tr>" for key, value in summary.items())
