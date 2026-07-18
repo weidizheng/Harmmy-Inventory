@@ -179,7 +179,12 @@ def parse_packaging(details: str, carton_source: str) -> dict[str, Any]:
     quantity = int(Decimal(carton_source)) if carton_source and re.fullmatch(r"\d+(?:\.0+)?", carton_source.strip()) else None
     normalized = details.lower().replace("\n", " ")
     normalized = re.sub(r"\s+", " ", normalized)
-    inner_match = re.search(r"(\d+)\s+(?:designs?|pcs?|pieces?)\s+per\s+(?:middle\s+(?:box|tray)|inner\s+box|display\s+box)", normalized)
+    # A source row may describe both its collection size ("8 designs per middle box")
+    # and its physical count ("6 pcs per middle box"). Physical pcs/pieces wins; designs
+    # is only a variation count in that case (for example EAKI1030: 1 × 6 × 12 = 72).
+    inner_match = re.search(r"(\d+)\s+(?:pcs?|pieces?)\s+per\s+(?:middle\s+(?:box|tray)|inner\s+box|display\s+box)", normalized)
+    if not inner_match:
+        inner_match = re.search(r"(\d+)\s+designs?\s+per\s+(?:middle\s+(?:box|tray)|inner\s+box|display\s+box)", normalized)
     carton_match = re.search(r"(\d+)\s+(?:middle\s+(?:boxes|trays)|inner\s+boxes|display\s+boxes)\s*/\s*carton", normalized)
     if inner_match and carton_match and quantity is not None:
         units_per_inner, inners_per_carton = int(inner_match.group(1)), int(carton_match.group(1))
