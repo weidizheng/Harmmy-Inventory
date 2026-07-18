@@ -42,10 +42,14 @@ STANDARD_FIELDS = [
 # only physical pack counts; collection/design counts are not inventory quantities.
 IMAGE_CONFIRMED_PACKAGING: dict[str, tuple[int, int]] = {
     "EAKI1002": (18, 10),  # Image: 18 small packs / middle box, 10 middle boxes / carton.
+    "EAKI1012": (6, 30),  # Image: 1 small box / pack, 6 packs / middle box, 30 middle boxes / carton.
     "EAKI1030": (6, 12),  # Image: 6 pieces / middle box; source confirms 12 middle boxes / carton.
+    "EAKI1043": (6, 30),  # Image: 1 small box / pack, 6 packs / middle box, 30 middle boxes / carton.
+    "EAKI1044": (6, 30),  # Image: 1 small box / pack, 6 packs / middle box, 30 middle boxes / carton.
     "EAKI1046": (10, 40), # Image: 10 small boxes / middle box; source confirms 40 / case.
     "EAKI1047": (6, 24),  # Image: 6 packs / middle box, 24 middle boxes / carton.
     "EAKI1048": (5, 20),  # Image: 5 packs / middle box, 20 middle boxes / carton.
+    "EAKI1063": (6, 30),  # Image: 1 unit / pack, 6 packs / middle box, 30 middle boxes / carton.
     "EAKI1025": (12, 12), # Image: 12 small packs / box, 12 boxes / carton.
     "EAKI1035": (6, 30),  # Image: 6 packs / middle box, 30 middle boxes / carton.
     "EAKI1082": (6, 30),  # Image: 6 packs / middle box, 30 middle boxes / carton.
@@ -53,12 +57,22 @@ IMAGE_CONFIRMED_PACKAGING: dict[str, tuple[int, int]] = {
     "EAKI1088": (6, 30),  # Image: 6 packs / middle box, 30 middle boxes / carton.
     "EAKI1104": (6, 30),  # Image: 6 packs / middle box, 30 middle boxes / carton.
     "EAKI1090": (6, 30),  # Image: 6 small packs / middle box, 30 middle boxes / carton.
+    "EAKI1084": (6, 30),  # Image: 1 small box / pack, 6 packs / middle box, 30 middle boxes / carton.
+}
+
+# The matched image for this SKU shows a physical configuration that does not
+# reconcile with the source carton quantity. Keep it visible for a person to
+# confirm instead of selecting either value automatically.
+IMAGE_PACKAGING_CONFLICTS: dict[str, str] = {
+    "EAKI1070": "Matched image shows 6 packs per middle box and 12 middle boxes per carton (72 units), while the source carton quantity is 192. Confirm the image and source row refer to the same SKU.",
 }
 
 # Read from the matched product image/logo. Keep image-derived conclusions separate
 # from name matching so a later import can remain auditable.
 IMAGE_CONFIRMED_IPS: dict[str, str] = {
     "EAKI1048": "Naruto", "EAKI1049": "Naruto", "EAKI1076": "Yeastken",
+    "EAKI1045": "Naruto", "EAKI1061": "The Prince of Tennis", "EAKI1067": "Bocchi the Rock!",
+    "EAKI1073": "Solo Leveling", "EAKI1077": "Jujutsu Kaisen", "EAKI1083": "Sakamoto Days",
     "EAKI1072": "Bocchi the Rock!", "EAKI1086": "Sakamoto Days", "EAKI1093": "Opanchu Usagi",
     "EAKI1094": "Opanchu Usagi", "EAKI1096": "The Fallen Mermaid", "EAKI1097": "The Fallen Mermaid",
     "EAKI1098": "Shugo Chara!", "EAKI1099": "Oblivion Battery", "EAKI1100": "Demon Slayer",
@@ -222,6 +236,8 @@ def parse_packaging(sku: str, details: str, carton_source: str) -> dict[str, Any
     quantity = int(Decimal(carton_source)) if carton_source and re.fullmatch(r"\d+(?:\.0+)?", carton_source.strip()) else None
     normalized = details.lower().replace("\n", " ")
     normalized = re.sub(r"\s+", " ", normalized)
+    if sku in IMAGE_PACKAGING_CONFLICTS:
+        return {"status": "NEEDS_REVIEW", "notes": IMAGE_PACKAGING_CONFLICTS[sku], "evidence": "IMAGE_CONFLICT", "units_per_inner": "", "inners_per_carton": "", "calculated": ""}
     if sku in IMAGE_CONFIRMED_PACKAGING and quantity is not None:
         units_per_inner, inners_per_carton = IMAGE_CONFIRMED_PACKAGING[sku]
         calculated = units_per_inner * inners_per_carton
