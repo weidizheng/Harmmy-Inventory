@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const links = [
-  ["Inventory", "/inventory"], ["New operation", "/operations/new"], ["Preview", "/operations/preview"], ["History", "/operations/history"],
+  ["Inventory", "/inventory"], ["New operation", "/operations/new"], ["History", "/operations/history"],
   ["Products", "/admin/products"], ["New product", "/admin/products/new"], ["Imports", "/admin/imports"], ["IPs", "/admin/ips"], ["Staff", "/admin/staff"],
 ];
 

@@ -1,2 +1,8 @@
+import { OperationForm } from "../../../components/operation-form";
 import { Shell } from "../../../components/shell";
-export default function NewOperation() { return <Shell title="New inventory operation"><section className="panel"><h2>Build an outbound cart</h2><p>Add products, select exactly one physical level, then preview all changes. The system will not split cartons or inners automatically.</p><div className="line"><input value="HZMB-M1301" readOnly /><select defaultValue="inner"><option value="carton">Carton</option><option value="inner">Inner</option><option value="unit">Unit</option></select><input type="number" defaultValue="2" min="1" /><button>Remove</button></div><button className="primary">Preview operation</button></section></Shell>; }
+import { getCatalogProducts } from "../../../lib/catalog";
+
+export default async function NewOperation({ searchParams }: Readonly<{ searchParams: Promise<{ product?: string }> }>) {
+  const [{ product }, products] = await Promise.all([searchParams, getCatalogProducts()]);
+  return <Shell title="新建库存操作"><OperationForm products={products} initialProductId={product} /></Shell>;
+}

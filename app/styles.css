@@ -58,6 +58,30 @@ th,td { padding:10px; border-bottom:1px solid var(--line); font-size:13px; text-
 .login input { width:100%; }
 .login button { width:100%; margin:18px 0 12px; }
 .login small { color:var(--muted); }
+.button-link,.operation-link { display:inline-block; padding:8px 10px; border-radius:7px; font-size:12px; font-weight:700; }
+.button-link { color:#fff; }
+.operation-link { margin-top:8px; background:#eeecff; color:#4a4680; }
+.inventory-summary { margin-top:9px; color:#157347 !important; font-weight:700; }
+.operation-panel { display:grid; gap:16px; }
+.operation-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.operation-heading h2 { margin-bottom:3px; }
+.operation-heading p { margin:0; color:var(--muted); }
+.product-finder,.operation-notes { display:grid; gap:6px; font-size:13px; font-weight:700; }
+.product-matches { display:grid; gap:6px; max-height:250px; overflow:auto; }
+.product-matches button { text-align:left; }
+.empty-operation { margin:0; color:var(--muted); }
+.operation-line { display:grid; grid-template-columns:minmax(180px,1fr) minmax(240px,1.1fr) minmax(180px,.8fr) auto; align-items:end; gap:12px; padding:14px; border:1px solid var(--line); border-radius:9px; }
+.operation-product { display:grid; gap:3px; }
+.operation-product span { color:var(--muted); font-size:12px; }
+.operation-quantities { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+.operation-quantities label { display:grid; gap:4px; color:var(--muted); font-size:12px; font-weight:700; }
+.operation-quantities input { min-width:0; }
+.after { color:#157347; font-size:12px; font-weight:700; }
+.after.invalid,.operation-message.error { color:#b42318; }
+.remove-line { padding:7px 9px; color:#b42318; font-size:12px; }
+.operation-notes textarea { min-height:74px; resize:vertical; padding:9px 11px; border:1px solid #cfd5df; border-radius:7px; font:inherit; }
+.operation-message { margin:0; color:#157347; font-weight:700; }
+button:disabled { cursor:not-allowed; opacity:.55; }
 @media (max-width:700px) {
   .shell { grid-template-columns:1fr; }
   .shell aside { display:block; padding:14px; }
@@ -73,4 +97,5 @@ th,td { padding:10px; border-bottom:1px solid var(--line); font-size:13px; text-
   .line,.form-grid { grid-template-columns:1fr; }
   .card { min-width:0; }
   .product-image,.image-placeholder { width:82px; height:82px; flex-basis:82px; }
+  .operation-heading,.operation-line { display:grid; grid-template-columns:1fr; }
 }

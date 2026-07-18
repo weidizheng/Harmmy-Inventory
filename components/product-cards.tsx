@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { CatalogProduct } from "../lib/catalog";
 import { matchesProductSearch } from "../lib/product-search";
 
@@ -41,6 +42,10 @@ export function ProductCards({ products }: Readonly<{ products: CatalogProduct[]
           </div>
           {product.unitsPerInner && product.innersPerCarton && product.quantityPerCarton &&
             <p className="carton-check">箱规核对：{product.unitsPerInner} × {product.innersPerCarton} = {product.quantityPerCarton} 件</p>}
+          {product.warehouseName && <p className="inventory-summary">
+            {product.warehouseName} 库存：箱 {product.inventory.cartonQty} · 端 {product.inventory.innerQty} · 盒 {product.inventory.unitQty}
+          </p>}
+          {product.warehouseId && <Link className="operation-link" href={`/operations/new?product=${product.id}`}>库存操作</Link>}
           {product.detailsRaw && <details><summary>查看原始 Details</summary><p className="details-raw">{product.detailsRaw}</p></details>}
         </div>
       </article>)}

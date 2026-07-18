@@ -15,6 +15,9 @@ export interface CatalogProduct {
   detailsRaw: string | null;
   isPinned: boolean;
   imageUrl: string | null;
+  warehouseId: string | null;
+  warehouseName: string | null;
+  inventory: { cartonQty: number; innerQty: number; unitQty: number; isEnabled: boolean };
 }
 
 type CatalogRow = {
@@ -36,7 +39,8 @@ type CatalogRow = {
 /** Returns the active catalog and short-lived URLs for private product images. */
 export async function getCatalogProducts(): Promise<CatalogProduct[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+  const [{ data, error }, { data: warehouse, error: warehouseError }] = await Promise.all([
+    supabase
     .from("products")
     .select(`
       id, sku, product_name_zh, product_name_en, product_type,
@@ -48,11 +52,19 @@ export async function getCatalogProducts(): Promise<CatalogProduct[]> {
     .eq("catalog_status", "ACTIVE")
     .order("is_pinned", { ascending: false })
     .order("sort_weight", { ascending: false })
-    .order("product_name_zh", { ascending: true });
+    .order("product_name_zh", { ascending: true }),
+    supabase.from("warehouses").select("id,name").eq("is_active", true).order("created_at", { ascending: true }).limit(1).maybeSingle(),
+  ]);
 
   if (error) throw new Error(`Unable to load product catalog: ${error.message}`);
+  if (warehouseError) throw new Error(`Unable to load warehouse: ${warehouseError.message}`);
 
   const rows = (data ?? []) as unknown as CatalogRow[];
+  const { data: balances, error: balancesError } = warehouse
+    ? await supabase.from("inventory_balances").select("product_id,carton_qty,inner_qty,unit_qty,is_enabled").eq("warehouse_id", warehouse.id)
+    : { data: [], error: null };
+  if (balancesError) throw new Error(`Unable to load inventory balances: ${balancesError.message}`);
+  const balanceByProduct = new Map((balances ?? []).map((balance) => [balance.product_id, balance]));
   const imageUrls = await Promise.all(rows.map(async (product) => {
     const image = [...product.product_images]
       .sort((left, right) => Number(right.is_primary) - Number(left.is_primary) || left.sort_order - right.sort_order)[0];
@@ -79,5 +91,13 @@ export async function getCatalogProducts(): Promise<CatalogProduct[]> {
     detailsRaw: product.details_raw,
     isPinned: product.is_pinned,
     imageUrl: imageUrls[index],
+    warehouseId: warehouse?.id ?? null,
+    warehouseName: warehouse?.name ?? null,
+    inventory: {
+      cartonQty: balanceByProduct.get(product.id)?.carton_qty ?? 0,
+      innerQty: balanceByProduct.get(product.id)?.inner_qty ?? 0,
+      unitQty: balanceByProduct.get(product.id)?.unit_qty ?? 0,
+      isEnabled: balanceByProduct.get(product.id)?.is_enabled ?? false,
+    },
   }));
 }
