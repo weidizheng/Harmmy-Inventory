@@ -73,15 +73,77 @@ async function requireValue(env, name) {
 }
 
 async function main() {
+  const preflightOnly = process.argv.includes("--preflight");
+  const verifyBatchId = process.argv.find((argument) => argument.startsWith("--verify-batch="))?.slice("--verify-batch=".length);
   const env = parseEnv(await fs.readFile(path.join(root, ".env.local"), "utf8"));
   const url = await requireValue(env, "NEXT_PUBLIC_SUPABASE_URL");
-  const secretKey = await requireValue(env, "SUPABASE_SECRET_KEY");
+  const publishableKey = await requireValue(env, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+  const importerEmail = await requireValue(env, "SUPABASE_IMPORTER_EMAIL");
+  const importerPassword = await requireValue(env, "SUPABASE_IMPORTER_PASSWORD");
   const rows = parseCsv(await fs.readFile(sourceCsvPath, "utf8"));
   if (rows.length !== expectedProductCount) throw new Error(`Expected ${expectedProductCount} reviewed Best Sellers, found ${rows.length}.`);
   const invalidRows = rows.filter((row) => row.validation_status !== "PASS" || !row.product_name_zh || !row.image_path);
   if (invalidRows.length) throw new Error(`Refusing import: ${invalidRows.length} row(s) are not import-ready.`);
 
-  const supabase = createClient(url, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const supabase = createClient(url, publishableKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: login, error: loginError } = await supabase.auth.signInWithPassword({
+    email: importerEmail,
+    password: importerPassword,
+  });
+  if (loginError) throw new Error(`Importer login failed: ${loginError.message}`);
+  const { data: importer, error: importerError } = await supabase
+    .from("staff")
+    .select("display_name")
+    .eq("auth_user_id", login.user.id)
+    .eq("is_active", true)
+    .single();
+  if (importerError || !importer) throw new Error("Importer account is not an active staff member.");
+  if (verifyBatchId) {
+    const [products, images, ips, batch, activityLogs] = await Promise.all([
+      supabase.from("products").select("id", { count: "exact", head: true }),
+      supabase.from("product_images").select("id", { count: "exact", head: true }),
+      supabase.from("ips").select("id", { count: "exact", head: true }),
+      supabase.from("import_batches").select("status,summary").eq("id", verifyBatchId).single(),
+      supabase.from("activity_logs").select("id", { count: "exact", head: true }),
+    ]);
+    for (const result of [products, images, ips, batch, activityLogs]) if (result.error) throw result.error;
+    console.log(JSON.stringify({
+      products: products.count,
+      product_images: images.count,
+      ips: ips.count,
+      batch_status: batch.data.status,
+      batch_summary: batch.data.summary,
+      audit_log_entries: activityLogs.count,
+    }));
+    return;
+  }
+  const imageSizes = await Promise.all(rows.map(async (row) => {
+    const localImagePath = path.join(extractedImagesDir, row.image_path);
+    const imageInfo = await fs.stat(localImagePath);
+    if (imageInfo.size > 5 * 1024 * 1024) throw new Error(`${row.sku} image exceeds the 5 MB storage limit.`);
+    return imageInfo.size;
+  }));
+  if (preflightOnly) {
+    const [{ error: imageAccessError }, { count: existingProducts, error: productCountError }] = await Promise.all([
+      supabase.storage.from("product-images").list("", { limit: 1 }),
+      supabase.from("products").select("id", { count: "exact", head: true }),
+    ]);
+    if (imageAccessError) throw imageAccessError;
+    if (productCountError) throw productCountError;
+    console.log(JSON.stringify({
+      scope: "Best Sellers",
+      reviewed_products: rows.length,
+      validated_images: imageSizes.length,
+      largest_image_bytes: Math.max(...imageSizes),
+      private_image_bucket: true,
+      existing_remote_products: existingProducts ?? 0,
+      authenticated_importer: importer.display_name,
+      ready_to_import: true,
+    }));
+    return;
+  }
   const importSummary = { scope: "Best Sellers", source: "best-sellers-import-ready.csv", requested_products: rows.length };
   const { data: batch, error: batchError } = await supabase.from("import_batches")
     .insert({ source_filename: "best-sellers-import-ready.csv", status: "DRAFT", summary: importSummary })
@@ -123,7 +185,6 @@ async function main() {
     for (const row of rows) {
       const localImagePath = path.join(extractedImagesDir, row.image_path);
       const image = await fs.readFile(localImagePath);
-      if (image.byteLength > 5 * 1024 * 1024) throw new Error(`${row.sku} image exceeds the 5 MB storage limit.`);
       const { error: uploadError } = await supabase.storage.from("product-images")
         .upload(row.image_path, image, { contentType: "image/webp", upsert: true });
       if (uploadError) throw uploadError;
