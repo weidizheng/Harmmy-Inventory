@@ -76,6 +76,30 @@ IMAGE_CONFIRMED_IPS: dict[str, str] = {
     "EAKI1089": "The Elusive Samurai", "EAKI1092": "Katekyo Hitman Reborn!",
 }
 
+# Best Sellers names transcribed from the matched product image. Two records
+# whose images do not show a formal Chinese title intentionally remain blank.
+IMAGE_CONFIRMED_CHINESE_NAMES: dict[str, str] = {
+    "HZMB-M1301": "航海王 艾格赫德篇-毛绒系列",
+    "EAKI1007": "间谍过家家-猫猫毛绒玩偶", "EAKI1008": "间谍过家家-动物派对毛绒娃娃",
+    "EAKI1009": "间谍过家家-坐坐系列盲盒手办", "FLMA-M101": "葬送的芙莉莲-旅行日记手办",
+    "EAKI1016": "葬送的芙莉莲-猫猫毛绒玩偶", "EAKI1019": "葬送的芙莉莲-坐坐系列盲盒手办",
+    "NEW": "火影忍者疾风传-异色耳机包", "HYMH-M101": "火影忍者疾风传-疾风萌忍坐坐盲盒手办",
+    "EAKI1057": "火影忍者疾风传-萌嘟嘟毛绒挂件", "EAKI1058": "火影忍者疾风传-萌兽派对系列",
+    "EAKI1059": "火影忍者疾风传-萌兽坐坐派对", "EAKI1106": "火影忍者疾风传-贴贴坐系列",
+    "EAKI1107": "火影忍者疾风传-萌兽趴趴派对", "EAKI11111": "火影忍者疾风传-猫猫乐园",
+    "EAKI1072": "孤独摇滚！-萌宠坐坐派对", "ZSMB-M1301": "咒术回战-猫猫坐坐派对",
+    "ZSSZ-M101": "咒术回战第二季-咒术街影", "ZSHZ-M201": "咒术回战 死灭回游-黑闪系列徽章",
+    "ZSGJ-M101": "咒术回战第二季-追忆流光立牌挂件系列", "ZSSL-M101": "咒术回战手机链挂件",
+    "EAKI1081": "咒术回战-跨步走盲盒手办", "ZSMA-M101": "咒术回战-萌坐盲盒手办",
+    "EAKI1086": "坂本日常-猫猫乐园派对", "EAKI1094": "脚脚兔-斗篷派对毛绒",
+    "EAKI1095": "脚脚兔-角色扮演", "EAKI1097": "人鱼陷落-宠物派对",
+    "EAKI1103": "药屋少女的呢喃-豹尾萌宠阁", "EAKI1066": "新网球王子努努",
+    "EAKI1038": "蜡笔小新-萌嘟嘟毛绒挂件", "EAKI1105": "银魂万兽屋",
+    "EAKI1108": "夏目友人帐-四季之旅系列毛绒挂件", "EAKI11109": "名侦探柯南-跨步走盲盒手办",
+    "PQHZ-M101": "排球少年！雕金徽章", "EAKI11110": "排球少年！！搪胶毛绒挂件",
+    "EAKI11112": "守护甜心-甜心萌宠派对",
+}
+
 IP_KEYWORDS = {
     "naruto": "Naruto", "one piece": "One Piece", "jjk": "JJK", "jujutsu kaisen": "JJK", "spyxfamily": "SPY×FAMILY", "frieren": "Frieren",
     "bocchi the rock": "Bocchi the Rock!", "sakamoto days": "Sakamoto Days", "panty bunny": "Opanchu Usagi",
@@ -215,6 +239,11 @@ def classify_ip(sku: str, name: str, details: str) -> tuple[str, str, str]:
         if token in text:
             return label, "AUTO_IDENTIFIED", "PRODUCT_TEXT"
     return "", "NEEDS_REVIEW", ""
+
+
+def chinese_name_for(sku: str) -> tuple[str, str]:
+    name = IMAGE_CONFIRMED_CHINESE_NAMES.get(sku, "")
+    return name, "IMAGE_CONFIRMED" if name else "NEEDS_CONFIRMATION"
 
 
 def classify_product_type(name: str) -> str:
@@ -366,10 +395,12 @@ def main() -> None:
         package_report: list[dict[str, Any]] = []
         price_report: list[dict[str, Any]] = []
         image_evidence: list[dict[str, Any]] = []
+        name_review: list[dict[str, Any]] = []
         for row in all_rows:
             packaging = parse_packaging(row["sku"], row["details_raw"], row["quantity_per_carton_source"])
             prices = price_validation(row["retail_price"], row["wholesale_price"], row["retail_carton"], row["wholesale_carton"], row["quantity_per_carton_source"])
             ip_name, ip_status, ip_evidence = classify_ip(row["sku"], row["product_name"], row["details_raw"])
+            product_name_zh, name_review_status = chinese_name_for(row["sku"])
             notes: list[str] = []
             errors = []
             warnings = []
@@ -400,13 +431,20 @@ def main() -> None:
                     if not thumb_path.exists(): convert_image(raw, thumb_path, THUMB_MAX)
                 image_manifest.append({"sheet": row["sheet"], "row": row["row"], "sku": row["sku"], "source_image": source_path, "main_image_path": output_images[-1], "matched": "YES"})
             clean_rows.append({
-                "sku": row["sku"], "product_name_zh": "", "product_name_en": row["product_name"], "brand_name": "", "ip_name": ip_name, "product_type": row["source_product_type"] or classify_product_type(row["product_name"]),
+                "source_sheet": row["sheet"], "sku": row["sku"], "product_name_zh": product_name_zh, "product_name_en": row["product_name"], "brand_name": "", "ip_name": ip_name, "product_type": row["source_product_type"] or classify_product_type(row["product_name"]),
                 "retail_price": row["retail_price"], "wholesale_price": row["wholesale_price"], "quantity_per_carton_source": row["quantity_per_carton_source"],
                 "units_per_inner": packaging["units_per_inner"], "inners_per_carton": packaging["inners_per_carton"], "units_per_carton_calculated": packaging["calculated"],
                 "size_text": row["size_text"], "details_raw": row["details_raw"], "image_source": ";".join(row["images"]), "image_path": ";".join(output_images),
                 "validation_status": status, "validation_notes": " ".join(errors + notes + warnings), "is_pinned": "false", "sort_weight": 0,
             })
             review_image_path = f"../extracted-images/{output_images[0]}" if output_images else ""
+            if row["sheet"] == "Best Sellers":
+                name_review.append({
+                    "sku": row["sku"], "product_name_zh": product_name_zh, "name_review_status": name_review_status,
+                    "product_name_en": row["product_name"], "ip_name": ip_name, "quantity_per_carton_source": row["quantity_per_carton_source"],
+                    "units_per_inner": packaging["units_per_inner"], "inners_per_carton": packaging["inners_per_carton"],
+                    "review_image_path": review_image_path, "details_raw": row["details_raw"],
+                })
             package_report.append({
                 "sheet": row["sheet"], "row": row["row"], "sku": row["sku"], "product_name": row["product_name"],
                 "quantity_per_carton_source": row["quantity_per_carton_source"], "review_image_path": review_image_path,
@@ -425,6 +463,7 @@ def main() -> None:
     missing_images = sum(1 for row in all_rows if not row["images"])
     summary = {
         "source": str(SOURCE.relative_to(ROOT)), "worksheet_count": len(sheets), "valid_product_rows": len(all_rows),
+        "import_scope": "Best Sellers", "import_preview_row_count": sum(row["sheet"] == "Best Sellers" for row in all_rows),
         "valid_sku_count": len({row["sku"] for row in all_rows if row["sku"]}), "duplicate_sku_count": len(duplicates),
         "missing_sku_count": sum(not row["sku"] for row in all_rows), "missing_product_name_count": sum(not row["product_name"] for row in all_rows),
         "image_total": len(image_anchors), "matched_image_count": len(image_anchors) - unmatched_images, "unmatched_image_count": unmatched_images, "missing_image_count": missing_images,
@@ -439,8 +478,9 @@ def main() -> None:
     write_csv(REPORTS / "duplicate-sku-report.csv", [{"sku": row["sku"], "sheet": row["sheet"], "row": row["row"]} for row in all_rows if row["sku"] in duplicates], ["sku", "sheet", "row"])
     write_csv(REPORTS / "packaging-review-report.csv", package_report, ["sheet", "row", "sku", "product_name", "quantity_per_carton_source", "review_image_path", "status", "evidence", "notes", "units_per_inner", "inners_per_carton", "calculated", "source_details"])
     write_csv(REPORTS / "price-validation-report.csv", price_report, ["sheet", "row", "sku", "status", "notes", "retail_price", "wholesale_price", "retail_carton", "wholesale_carton", "quantity", "retail_difference", "wholesale_difference"])
-    write_csv(OUTPUT / "products-clean-preview.csv", clean_rows, STANDARD_FIELDS)
-    write_csv(OUTPUT / "image-manifest-preview.csv", image_manifest, ["sheet", "row", "sku", "source_image", "main_image_path", "matched"])
+    write_csv(REPORTS / "best-sellers-chinese-name-review.csv", name_review, ["sku", "product_name_zh", "name_review_status", "product_name_en", "ip_name", "quantity_per_carton_source", "units_per_inner", "inners_per_carton", "review_image_path", "details_raw"])
+    write_csv(OUTPUT / "products-clean-preview.csv", [row for row in clean_rows if row["source_sheet"] == "Best Sellers"], STANDARD_FIELDS)
+    write_csv(OUTPUT / "image-manifest-preview.csv", [row for row in image_manifest if row["sheet"] == "Best Sellers"], ["sheet", "row", "sku", "source_image", "main_image_path", "matched"])
     (REPORTS / "import-summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     rows_html = "".join(f"<tr><th>{html.escape(key)}</th><td>{html.escape(str(value))}</td></tr>" for key, value in summary.items())
     (REPORTS / "data-quality-report.html").write_text(f"<!doctype html><title>Harmmy import quality</title><style>body{{font-family:Arial;margin:2rem}}table{{border-collapse:collapse}}th,td{{padding:.5rem;border:1px solid #ddd;text-align:left}}th{{background:#f4f4f4}}</style><h1>Workbook data-quality report</h1><p>Preview only; no product was imported or uploaded.</p><table>{rows_html}</table>", encoding="utf-8")
