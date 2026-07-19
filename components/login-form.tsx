@@ -15,6 +15,7 @@ export function LoginForm() {
   const router = useRouter();
   const [staffName, setStaffName] = useState<keyof typeof staffAccounts>("Henry");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,7 +26,7 @@ export function LoginForm() {
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithPassword({ email: staffAccounts[staffName], password });
     if (error) {
-      setMessage("密码不正确，或该账号尚未启用。请联系 Henry 确认。");
+      setMessage("登录失败，请检查姓名和密码。");
       setIsSubmitting(false);
       return;
     }
@@ -33,13 +34,19 @@ export function LoginForm() {
     router.refresh();
   }
 
-  return <form onSubmit={handleSubmit}>
-    <label>选择员工</label>
+  const selectStaff = (name: keyof typeof staffAccounts) => {
+    setStaffName(name);
+    setPassword("");
+    setMessage("");
+  };
+
+  return <form className={styles.form} onSubmit={handleSubmit}>
+    <span className={styles.fieldLabel}>选择用户</span>
     <div className={styles.staffPicker} role="group" aria-label="选择员工">
-      {(Object.keys(staffAccounts) as Array<keyof typeof staffAccounts>).map((name) => <button key={name} type="button" className={staffName === name ? styles.selected : ""} onClick={() => setStaffName(name)}>{name}</button>)}
+      {(Object.keys(staffAccounts) as Array<keyof typeof staffAccounts>).map((name) => <button key={name} type="button" aria-pressed={staffName === name} className={`${styles.staffButton} ${staffName === name ? styles.selected : ""}`} onClick={() => selectStaff(name)}><span>{name.slice(0, 1)}</span>{name}</button>)}
     </div>
-    <label>密码<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
-    {message && <p className="notice">{message}</p>}
-    <button className="primary" disabled={isSubmitting}>{isSubmitting ? "登录中…" : "登录"}</button>
+    <label className={styles.passwordField}><span>密码</span><div><input type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => { setPassword(event.target.value); setMessage(""); }} required /><button type="button" className={styles.passwordToggle} aria-label={showPassword ? "隐藏密码" : "显示密码"} onClick={() => setShowPassword((shown) => !shown)}>{showPassword ? "隐藏" : "显示"}</button></div></label>
+    {message && <p className={styles.error} role="alert">{message}</p>}
+    <button className={`primary ${styles.submit}`} disabled={isSubmitting}>{isSubmitting ? "登录中…" : "登录"}</button>
   </form>;
 }

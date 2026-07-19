@@ -6,5 +6,5 @@ export default function LoginPage({ searchParams }: Readonly<{ searchParams: Pro
 
 async function LoginPageContent({ searchParams }: Readonly<{ searchParams: Promise<{ reason?: string }> }>) {
   const { reason } = await searchParams;
-  return <main className="login"><section><p className="eyebrow">Harmmy Inventory</p><h1>员工登录</h1><p>选择自己的名字，然后输入各自的密码。</p>{reason === "inactive" && <p className="notice">该账号尚未启用，请联系 Henry。</p>}{reason === "signin" && <p className="notice">请先登录后再进入库存系统。</p>}<LoginForm /><small>所有已启用员工拥有相同操作权限；每次数据变更都会记录日志。</small></section></main>;
+  return <main className="login"><section><div className="login-mark" aria-hidden="true">H</div><h1>Harmmy Inventory</h1><p className="login-subtitle">仓库库存系统</p>{reason === "inactive" && <p className="login-alert">账号未启用</p>}{reason === "signin" && <p className="login-alert">请先登录</p>}<LoginForm /></section></main>;
 }
