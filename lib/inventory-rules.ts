@@ -25,6 +25,26 @@ export interface OperationResult {
   errors: Record<string, string>;
 }
 
+export interface PackagingValidation {
+  computedTotal: number;
+  error: string | null;
+}
+
+export function validatePackagingSource(
+  unitsPerInner: number,
+  innersPerCarton: number,
+  sourceTotal: number,
+): PackagingValidation {
+  if (![unitsPerInner, innersPerCarton, sourceTotal].every((value) => Number.isInteger(value) && value > 0)) {
+    return { computedTotal: unitsPerInner * innersPerCarton, error: "箱规和原表每箱总数必须是大于 0 的整数。" };
+  }
+  const computedTotal = unitsPerInner * innersPerCarton;
+  return {
+    computedTotal,
+    error: computedTotal === sourceTotal ? null : `箱规计算为 ${computedTotal}，与原表 Quantity/Carton ${sourceTotal} 不一致。`,
+  };
+}
+
 const quantities = (balance: Balance, unit: PackageUnit): number =>
   unit === "carton" ? balance.cartonQty : unit === "inner" ? balance.innerQty : balance.unitQty;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inventoryStatus, previewOutbound, splitCartons, splitInners, validateOutbound, type Balance } from "../lib/inventory-rules";
+import { inventoryStatus, previewOutbound, splitCartons, splitInners, validateOutbound, validatePackagingSource, type Balance } from "../lib/inventory-rules";
 
 const balance = (overrides: Partial<Balance> = {}): Balance => ({ cartonQty: 3, innerQty: 2, unitQty: 4, isEnabled: true, ...overrides });
 
@@ -31,4 +31,10 @@ describe("derived inventory statuses", () => {
   it("is IN_STOCK with cartons even when an inner request fails", () => { expect(inventoryStatus(balance({ cartonQty: 1, innerQty: 0, unitQty: 0 }))).toBe("IN_STOCK"); expect(validateOutbound(balance({ cartonQty: 1, innerQty: 0, unitQty: 0 }), "inner", 1)).toContain("Insufficient"); });
   it("respects inactive catalog status", () => expect(inventoryStatus(balance(), "INACTIVE")).toBe("INACTIVE"));
   it("respects archived catalog status", () => expect(inventoryStatus(balance(), "ARCHIVED")).toBe("ARCHIVED"));
+});
+
+describe("source packaging validation", () => {
+  it("accepts a package calculation matching the source quantity", () => expect(validatePackagingSource(6, 12, 72)).toEqual({ computedTotal: 72, error: null }));
+  it("reports a mismatch against the source quantity", () => expect(validatePackagingSource(6, 12, 144).error).toContain("不一致"));
+  it("rejects non-positive package values", () => expect(validatePackagingSource(0, 12, 72).error).toContain("大于 0"));
 });

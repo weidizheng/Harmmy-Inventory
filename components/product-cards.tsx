@@ -30,6 +30,10 @@ export function ProductCards({
     <div className="cards">
       {visibleProducts.map((product) => {
         const adjustment = adjustments[product.id] ?? emptyAdjustment;
+        const packageTotal = product.unitsPerInner && product.innersPerCarton
+          ? product.unitsPerInner * product.innersPerCarton
+          : null;
+        const packageMatchesSource = packageTotal !== null && packageTotal === product.quantityPerCarton;
         const projected = {
           carton: product.inventory.cartonQty + adjustment.carton,
           inner: product.inventory.innerQty + adjustment.inner,
@@ -38,10 +42,15 @@ export function ProductCards({
         return <article className="card" key={product.id}>
           {product.imageUrl ? <img className="product-image" src={product.imageUrl} alt={`${product.nameZh} 商品图片`} /> : <div className="image-placeholder" aria-label="暂无商品图片">{product.ipZh.slice(0, 2)}</div>}
           <div className="card-copy">
-            <div className="card-title"><div><code>{product.sku}</code><h3>{product.nameZh}</h3>{product.nameEn && <p className="secondary-name">{product.nameEn}</p>}</div>{product.isPinned && <span title="重点商品">★</span>}</div>
+            <div className="card-title"><div><code>{product.sku}</code><h3>{product.nameZh}</h3>{product.nameEn && <p className="secondary-name">{product.nameEn}</p>}</div><div className="card-actions">{product.isPinned && <span title="重点商品">★</span>}{!adjustmentMode && <Link className="edit-product-link" href={`/admin/products/${product.id}/edit`}>编辑商品</Link>}</div></div>
             <p>{product.ipZh}{product.ipEn && product.ipEn !== product.ipZh ? ` / ${product.ipEn}` : ""} · {product.productType}</p>
             {product.sizeText && <p className="product-size">尺寸：{product.sizeText}</p>}
             <div className="quantities" aria-label="箱规"><span>中盒件数<b>{product.unitsPerInner ?? "—"}</b></span><span>每箱中盒<b>{product.innersPerCarton ?? "—"}</b></span><span>每箱总数<b>{product.quantityPerCarton ?? "—"}</b></span></div>
+            <section className="source-audit" aria-label="原表审核信息">
+              <div><span>原表 Quantity/Carton</span><b>{product.quantityPerCarton ?? "未填写"}</b></div>
+              <div><span>箱规计算</span><b className={packageTotal !== null && !packageMatchesSource ? "package-mismatch" : ""}>{packageTotal === null ? "箱规未完整" : `${product.unitsPerInner} × ${product.innersPerCarton} = ${packageTotal}`}{packageTotal !== null && !packageMatchesSource ? "（不一致）" : ""}</b></div>
+              <p><span>原表 Details</span>{product.detailsRaw || "未填写原始 Details"}</p>
+            </section>
             {product.warehouseName && <p className="inventory-summary">{product.warehouseName} 库存：箱 {product.inventory.cartonQty} · 端 {product.inventory.innerQty} · 盒 {product.inventory.unitQty} · 折合总数 {product.inventoryTotalUnits}</p>}
             {adjustmentMode ? <div className="card-adjuster" aria-label={`${product.nameZh} 库存调整`}>
               <strong>调整后库存</strong>
