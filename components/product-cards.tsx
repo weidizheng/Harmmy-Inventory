@@ -14,11 +14,13 @@ export function ProductCards({
   adjustmentMode = false,
   adjustments = {},
   onAdjust,
+  onSetAdjustment,
 }: Readonly<{
   products: CatalogProduct[];
   adjustmentMode?: boolean;
   adjustments?: Record<string, InventoryAdjustment>;
   onAdjust?: (productId: string, unit: keyof InventoryAdjustment, change: number) => void;
+  onSetAdjustment?: (productId: string, unit: keyof InventoryAdjustment, value: number) => void;
 }>) {
   const [query, setQuery] = useState("");
   const [largeImage, setLargeImage] = useState<{ url: string; alt: string; name: string } | null>(null);
@@ -67,8 +69,8 @@ export function ProductCards({
             </section>
             {product.warehouseName && <p className="inventory-summary">{product.warehouseName} 库存：箱 {product.inventory.cartonQty} · 端 {product.inventory.innerQty} · 盒 {product.inventory.unitQty} · 折合总数 {product.inventoryTotalUnits}</p>}
             {adjustmentMode ? <div className="card-adjuster" aria-label={`${product.nameZh} 库存调整`}>
-              <strong>调整后库存</strong>
-              {([['carton', '箱'], ['inner', '端'], ['unit', '盒']] as const).map(([unit, label]) => <div className="adjust-unit" key={unit}><span>{label}</span><button type="button" disabled={projected[unit] <= 0} onClick={() => onAdjust?.(product.id, unit, -1)}>−</button><b>{projected[unit]}</b><button type="button" onClick={() => onAdjust?.(product.id, unit, 1)}>＋</button></div>)}
+              <strong>本次调整量 <small>正数入库，负数出库</small></strong>
+              {([['carton', '箱', product.inventory.cartonQty], ['inner', '端', product.inventory.innerQty], ['unit', '盒', product.inventory.unitQty]] as const).map(([unit, label, currentQty]) => <div className="adjust-unit" key={unit}><span>{label}<small>当前 {currentQty}</small></span><div><button type="button" disabled={projected[unit] <= 0} onClick={() => onAdjust?.(product.id, unit, -1)}>−</button><input type="number" step="1" min={-currentQty} value={adjustment[unit]} aria-label={`${product.nameZh} ${label}本次调整量`} onChange={(event) => { const value = Number(event.target.value); if (Number.isInteger(value) && currentQty + value >= 0) onSetAdjustment?.(product.id, unit, value); }} /><button type="button" onClick={() => onAdjust?.(product.id, unit, 1)}>＋</button></div><small>提交后 {projected[unit]}</small></div>)}
             </div> : product.warehouseId && <Link className="operation-link" href={`/operations/new?product=${product.id}`}>库存操作</Link>}
           </div>
         </article>;
