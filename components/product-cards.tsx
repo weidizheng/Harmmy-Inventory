@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CatalogProduct } from "../lib/catalog";
 import { matchesProductSearch } from "../lib/product-search";
 
@@ -21,7 +21,21 @@ export function ProductCards({
   onAdjust?: (productId: string, unit: keyof InventoryAdjustment, change: number) => void;
 }>) {
   const [query, setQuery] = useState("");
+  const [largeImage, setLargeImage] = useState<{ url: string; alt: string; name: string } | null>(null);
   const visibleProducts = products.filter((product) => matchesProductSearch(product, query));
+
+  useEffect(() => {
+    if (!largeImage) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setLargeImage(null); };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [largeImage]);
+
   return <>
     <div className="toolbar">
       <input aria-label="搜索产品" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索 SKU、中文名、英文名或 IP，例如：火影 / Naruto" />
@@ -40,7 +54,7 @@ export function ProductCards({
           unit: product.inventory.unitQty + adjustment.unit,
         };
         return <article className="card" key={product.id}>
-          {product.imageUrl ? <img className="product-image" src={product.imageUrl} alt={`${product.nameZh} 商品图片`} /> : <div className="image-placeholder" aria-label="暂无商品图片">{product.ipZh.slice(0, 2)}</div>}
+          {product.imageUrl ? <button type="button" className="product-image-button" title="点按查看大图" aria-label={`查看 ${product.nameZh} 大图`} onClick={() => setLargeImage({ url: product.imageUrl!, alt: `${product.nameZh} 商品图片`, name: `${product.sku} · ${product.nameZh}` })}><img className="product-image" src={product.imageUrl} alt={`${product.nameZh} 商品图片`} loading="lazy" decoding="async" /></button> : <div className="image-placeholder" aria-label="暂无商品图片">{product.ipZh.slice(0, 2)}</div>}
           <div className="card-copy">
             <div className="card-title"><div><code>{product.sku}</code><h3>{product.nameZh}</h3>{product.nameEn && <p className="secondary-name">{product.nameEn}</p>}</div><div className="card-actions">{product.isPinned && <span title="重点商品">★</span>}{!adjustmentMode && <Link className="edit-product-link" href={`/admin/products/${product.id}/edit`}>编辑商品</Link>}</div></div>
             <p>{product.ipZh}{product.ipEn && product.ipEn !== product.ipZh ? ` / ${product.ipEn}` : ""} · {product.productType}</p>
@@ -61,5 +75,6 @@ export function ProductCards({
       })}
     </div>
     {visibleProducts.length === 0 && <p className="notice">没有匹配商品。可尝试 SKU、中文名、英文名或 IP 关键词。</p>}
+    {largeImage && <div className="image-lightbox" role="presentation" onClick={() => setLargeImage(null)}><section role="dialog" aria-modal="true" aria-label={`${largeImage.name} 大图`} onClick={(event) => event.stopPropagation()}><button type="button" className="image-lightbox-close" aria-label="关闭大图" onClick={() => setLargeImage(null)}>×</button><img src={largeImage.url} alt={largeImage.alt} /><p>{largeImage.name}</p></section></div>}
   </>;
 }
