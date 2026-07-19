@@ -221,6 +221,23 @@ button:disabled { cursor:not-allowed; opacity:.55; }
 .adjust-unit input::-webkit-inner-spin-button,.adjust-unit input::-webkit-outer-spin-button { margin:0; appearance:none; }
 button:focus-visible,a:focus-visible,input:focus-visible { outline:3px solid #8477e6; outline-offset:2px; }
 
+.single-product-adjustment { margin-top:11px; padding:11px; border:1px solid #cec8fb; border-radius:9px; background:#f8f7ff; }
+.single-adjustment-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.single-adjustment-heading strong { color:#352b8b; font-size:13px; }
+.single-adjustment-heading p { margin:2px 0 0; color:var(--muted); font-size:10px; }
+.single-adjustment-heading button { padding:5px 7px; background:transparent; color:#665f7f; font-size:10px; }
+.single-adjustment-units { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:9px; }
+.single-adjustment-unit { display:grid; gap:4px; text-align:center; }
+.single-adjustment-unit > span { font-size:11px; font-weight:700; }
+.single-adjustment-unit > span small { display:block; color:var(--muted); font-size:9px; font-weight:400; }
+.single-adjustment-unit > div { display:grid; grid-template-columns:30px minmax(42px,1fr) 30px; gap:3px; }
+.single-adjustment-unit button { display:grid; min-width:30px; height:32px; place-items:center; padding:0; border-color:#bbb4ef; color:#493fa2; font-size:16px; }
+.single-adjustment-unit input { width:100%; min-width:0; height:32px; padding:3px; border-color:#bbb4ef; color:#302873; font-weight:700; text-align:center; }
+.single-adjustment-unit > b { color:#157347; font-size:9px; }
+.single-adjustment-notes { display:grid; gap:3px; margin-top:9px; color:#5e587c; font-size:10px; font-weight:700; }
+.single-adjustment-notes input { padding:7px 9px; font-size:11px; }
+.single-adjustment-submit { width:100%; margin-top:9px; padding:8px; font-size:12px; font-weight:700; }
+
 /* Operation-level activity log */
 .operation-log-panel { max-width:1050px; }
 .operation-log-filters { align-items:end; }
@@ -304,6 +321,10 @@ button:focus-visible,a:focus-visible,input:focus-visible { outline:3px solid #84
   .bulk-adjustment-bar > div:first-child span { padding:4px 5px; }
   .bulk-adjustment-actions { display:grid; grid-template-columns:1fr 1.35fr; }
   .bulk-adjustment-actions button { min-height:42px; padding:7px; }
+  .single-product-adjustment { margin-right:-3px; margin-left:-3px; }
+  .single-adjustment-units { gap:4px; }
+  .single-adjustment-unit > div { grid-template-columns:28px minmax(35px,1fr) 28px; }
+  .single-adjustment-unit button { min-width:28px; }
   .operation-log-entry { padding:13px; }
   .operation-log-heading { display:grid; gap:8px; }
   .operation-log-status { display:flex; align-items:center; justify-content:space-between; }

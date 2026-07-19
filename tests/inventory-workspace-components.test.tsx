@@ -2,16 +2,19 @@
 
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { CatalogProduct } from "../lib/catalog";
 import { InventoryWorkspace } from "../components/inventory-workspace";
 import { ProductCards } from "../components/product-cards";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a href={String(href)} {...props}>{children}</a> }));
+const rpcMock = vi.hoisted(() => vi.fn());
+vi.mock("../lib/supabase/client", () => ({ createSupabaseBrowserClient: () => ({ rpc: rpcMock }) }));
 
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
   vi.restoreAllMocks();
 });
 
@@ -90,11 +93,32 @@ describe("inventory product directory", () => {
     expect(within(narutoCard).queryByText("Naruto original details")).toBeNull();
   });
 
-  it("uses a distinct single-product adjustment link", () => {
+  it("opens an inline adjustment for only the selected product", () => {
     render(<ProductCards products={[stockedNaruto]} />);
-    const link = screen.getByRole("link", { name: "调整此商品" });
-    expect(link.getAttribute("href")).toBe("/operations/new?product=p1");
+    const button = screen.getByRole("button", { name: "调整此商品" });
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(button);
+    expect(screen.getByRole("region", { name: "火影忍者手办 单品调整" })).toBeTruthy();
+    const cartonInput = screen.getByLabelText("火影忍者手办 箱单品调整量");
+    fireEvent.change(cartonInput, { target: { value: "-2" } });
+    expect(within(cartonInput.closest(".single-adjustment-unit") as HTMLElement).getByText("提交后 2")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "核对并提交此商品" }).hasAttribute("disabled")).toBe(false);
+    expect(screen.queryByText("名侦探柯南摆件")).toBeNull();
     expect(screen.queryByText("批量调整模式")).toBeNull();
+  });
+
+  it("confirms and submits an inline adjustment as one operation line", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    rpcMock.mockResolvedValue({ data: { operation_number: "OP-20260718-000099" }, error: null });
+    render(<ProductCards products={[stockedNaruto]} />);
+    fireEvent.click(screen.getByRole("button", { name: "调整此商品" }));
+    fireEvent.change(screen.getByLabelText("火影忍者手办 盒单品调整量"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "核对并提交此商品" }));
+
+    await waitFor(() => expect(rpcMock).toHaveBeenCalledTimes(1));
+    expect(rpcMock.mock.calls[0][0]).toBe("confirm_stock_operation");
+    expect(rpcMock.mock.calls[0][1].p_lines).toEqual([{ product_id: "p1", carton_qty: 0, inner_qty: 0, unit_qty: 3 }]);
+    expect(await screen.findByText(/已提交 OP-20260718-000099/)).toBeTruthy();
   });
 });
 
@@ -104,7 +128,7 @@ describe("bulk inventory adjustment", () => {
     fireEvent.click(screen.getByRole("button", { name: "开始批量调整" }));
     expect(screen.getByRole("complementary", { name: "批量调整汇总" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "查看汇总并确认" }).hasAttribute("disabled")).toBe(true);
-    expect(screen.queryByRole("link", { name: "调整此商品" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "调整此商品" })).toBeNull();
   });
 
   it("totals changes across multiple products without converting units", () => {

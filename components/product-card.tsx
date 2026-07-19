@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useId, useState } from "react";
 import type { CatalogProduct } from "../lib/catalog";
 import type { InventoryAdjustment, InventoryUnit } from "../lib/inventory-workspace-ui";
 import { InventoryQuantitySummary } from "./inventory-quantity-summary";
 import { ProductDetailsDisclosure } from "./product-details-disclosure";
+import { SingleProductAdjustment } from "./single-product-adjustment";
 
 const unitRows: Array<{ unit: InventoryUnit; label: string; inventoryKey: "cartonQty" | "innerQty" | "unitQty" }> = [
   { unit: "carton", label: "箱", inventoryKey: "cartonQty" },
@@ -27,6 +29,13 @@ export function ProductCard({
   onSetAdjustment?: (productId: string, unit: InventoryUnit, value: number) => void;
   onOpenImage: (image: { url: string; alt: string; name: string }) => void;
 }>) {
+  const [singleAdjustmentOpen, setSingleAdjustmentOpen] = useState(false);
+  const singleAdjustmentId = useId();
+
+  useEffect(() => {
+    if (adjustmentMode) setSingleAdjustmentOpen(false);
+  }, [adjustmentMode]);
+
   return <article className="card product-card">
     <div className="product-card-main">
       {product.imageUrl
@@ -73,8 +82,10 @@ export function ProductCard({
       })}
     </div>}
 
+    {!adjustmentMode && singleAdjustmentOpen && <SingleProductAdjustment product={product} id={singleAdjustmentId} onCancel={() => setSingleAdjustmentOpen(false)} />}
+
     <footer className="product-card-footer">
-      {!adjustmentMode && product.warehouseId && <Link className="operation-link" href={`/operations/new?product=${product.id}`}>调整此商品</Link>}
+      {!adjustmentMode && product.warehouseId && !singleAdjustmentOpen && <button type="button" className="operation-link" aria-expanded="false" aria-controls={singleAdjustmentId} onClick={() => setSingleAdjustmentOpen(true)}>调整此商品</button>}
       {adjustmentMode && <span className="bulk-card-label">批量调整模式</span>}
       <ProductDetailsDisclosure product={product} />
     </footer>
