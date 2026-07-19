@@ -1,33 +1,42 @@
-# Staff account onboarding
+# 员工账号维护
 
-All enabled staff have the same application permissions. `staff.role` remains
-`admin` only to satisfy the original schema; access is controlled by
-`staff.is_active` and the linked Supabase Auth user.
+所有启用员工目前拥有相同业务权限。`staff.role` 暂时统一为 `admin`；真正的访问条件是已登录并且关联的 `staff.is_active = true`。
 
-## Create each account
+## 当前姓名映射
 
-In the Supabase Dashboard, open **Authentication → Users → Add user**. Create
-an email-and-password account for each person using these fixed internal
-identifiers. The website hides these emails and shows only the person's name.
+网站只显示姓名，内部使用以下 Supabase Auth 邮箱登录：
 
-| Staff name | Auth email |
+| 姓名 | Auth 邮箱 |
 | --- | --- |
 | Henry | `henryma107@yahoo.com` |
-| Terrence | `weidhaobang@gmail.com` |
+| Terrence | `weidihaobang@gmail.com` |
+| Harmmy | `info@harmmyanime.com` |
 
-Choose a different strong password for each account and share it only with
-that person. If the dashboard offers **Auto Confirm User**, enable it for these
-manually created internal accounts. Do not add a service-role key to the
-browser.
+密码只由账号本人和 Supabase Auth 管理，不写进本文档或代码。
 
-The database trigger automatically creates an inactive row in `public.staff`
-for every new Auth user. In **Table Editor → staff**, set each matching row's
-`display_name` to the person's name and set `is_active` to `true`.
+## 新增员工
 
-## Security behaviour
+1. Supabase Dashboard → Authentication → Users → Add user。
+2. 填写内部邮箱和不同的强密码；手动创建的内部账号可选择 Auto Confirm User。
+3. 创建 Auth 用户后，数据库 Trigger 会自动在 `public.staff` 创建一条停用记录。
+4. Table Editor → `staff`：确认 `auth_user_id` 对应，设置正确 `display_name`、`role = admin`、`is_active = true`。
+5. 在 `components/login-form.tsx` 的 `staffAccounts` 中添加姓名和同一个 Auth 邮箱。
+6. 运行 `pnpm lint`、`pnpm test`、`pnpm build`，提交并部署。
+7. 用该员工姓名和密码实际登录一次，并确认日志显示正确姓名。
 
-- An Auth user with no active staff row is redirected back to `/login`.
-- Every enabled staff member has the same full operational permissions.
-- Every insert, update, and delete on operational tables creates an immutable
-  `activity_logs` record with the acting staff member, time, entity, and
-  before/after data.
+员工页面显示的 `staff.id` 和 Authentication 页的 User UID 不是同一个 ID；关联时必须检查 `staff.auth_user_id = auth.users.id`。
+
+## 停用员工
+
+1. 先在 `staff` 表设置 `is_active = false`，账号会立即无法进入受保护页面。
+2. 从登录页 `staffAccounts` 移除该姓名并部署。
+3. 如确认不再使用，再在 Supabase Auth 禁用或删除账号。
+
+不要删除历史 `activity_logs`；旧日志应继续显示原操作人。
+
+## 安全行为
+
+- 未登录用户会被重定向到 `/login`。
+- 已登录但没有启用 staff 记录的用户也无法进入系统。
+- 每个业务表的 insert/update/delete 由数据库 Trigger 写入 `activity_logs`。
+- Secret/Service Role Key 绝不能放进客户端代码、GitHub 或员工设备。

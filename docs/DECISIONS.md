@@ -1,9 +1,14 @@
-# Decisions
+# 主要技术决策
 
-- Next.js App Router and strict TypeScript are used for the local UI prototype.
-- PostgreSQL/Supabase DDL is stored only as timestamped migrations.
-- Inventory is stored by physical package level, never by a normalized total.
-- The source workbook and extracted artifacts remain in `private-import/`, which Git ignores.
-- Import classification is conservative: unknown IP or package interpretation is `NEEDS_REVIEW`.
-- RLS is enabled in the migration. Browser access policies and secure login functions remain deferred until staff authentication is implemented.
-- Product images are stored in the private `product-images` bucket. No browser storage policy is granted before staff authentication exists.
+- 使用 Next.js App Router 和严格 TypeScript，同一代码库支持手机与电脑网页。
+- 使用 Supabase Auth 管理密码；`staff` 只保存业务身份和启用状态。
+- 所有启用员工暂时拥有相同权限，但每次数据变更必须可追溯到具体人员。
+- PostgreSQL/Supabase DDL 只通过带时间戳的迁移维护；已经执行的迁移不回头修改。
+- 库存按物理层级分别保存箱、端、盒，不把数据库余额归一化成一个总数。
+- 多商品库存提交必须由 RPC 在单一事务内完成，避免只成功一半。
+- 中文商品名是主名称，英文名、SKU、IP 和别名均可搜索。
+- 原 Excel 的 `Details` 与 `Quantity Per Carton` 和标准化箱规同时保留，便于人工审核。
+- 产品图片保存在私有 Storage，网页使用短期签名 URL，不生成永久公开图片链接。
+- 生产部署使用 Vercel；源代码使用 Private GitHub 仓库，密钥只配置在本地和部署环境。
+- 大体积 Excel、提取图片和审核中间文件留在本地 `private-import/`，不进入 Git。
+- 不删除已确认的库存历史；错误通过新的调整、纠正或反向记录修复。

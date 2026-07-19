@@ -1,7 +1,31 @@
-# Finalized requirements
+# 当前范围与后续计划
 
-This system maintains a complete product catalog separately from physical warehouse balances. Products may be `NOT_ENABLED`, `OUT_OF_STOCK`, `IN_STOCK`, `INACTIVE`, or `ARCHIVED`; the first three inventory states are calculated, not stored as an IP category.
+## 当前生产范围
 
-The current phase is entirely local. Do not connect to or modify a production Supabase project, upload assets, import production data, deploy a site, create a remote repository, or create real staff credentials.
+- 一个启用仓库：`Montery Park`。
+- 38 个 Best Seller 商品和私有主图。
+- 中文名优先、英文名辅助；支持 SKU、中文、英文和 IP 搜索。
+- 箱、端、盒三个物理库存层级。
+- 手机/电脑批量调整库存，提交前汇总核对。
+- 手机新增商品和图片。
+- Henry、Terrence、Harmmy 密码登录；权限相同。
+- 全部业务写入记录数据库操作日志。
+- Vercel 生产部署和 Supabase 云数据库。
 
-The catalog must support at least 1,000 SKUs. IP, product type, catalog status, and inventory status are independent dimensions. Default catalog ordering is pinned first, then descending stored weight, then products with stock, then product name.
+## 近期优先级
+
+1. 商品卡片显示原表 Details、原表 Quantity/Carton 与箱规计算，便于人工复核。
+2. 新增独立的“编辑商品资料”页面，可修改图片、中文/英文名、IP、尺寸和箱规；库存调整仍保持独立流程。
+3. 修改箱规时检查计算值必须与原表 Quantity/Carton 一致，并记录日志。
+4. 完成一次 Montery Park 全仓盘点和抽查。
+5. 建立固定的数据库备份/恢复演练。
+
+## 后续可选功能
+
+- 多仓库选择与仓间调拨；
+- 扫码查找 SKU；
+- 商品停用/归档和重复 SKU 合并流程；
+- 低库存提醒、盘点差异报表和 CSV 导出；
+- 更细的角色权限（仅在业务需要时启用）。
+
+未经明确需求，不提前增加复杂角色或自动拆箱规则。
