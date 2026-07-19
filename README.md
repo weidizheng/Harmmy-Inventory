@@ -1,8 +1,11 @@
 # Harmmy Inventory
 
+[![CI](https://github.com/weidizheng/Harmmy-Inventory/actions/workflows/ci.yml/badge.svg)](https://github.com/weidizheng/Harmmy-Inventory/actions/workflows/ci.yml)
+
 Harmmy 的手机友好型仓库库存系统。系统以中文商品名为主、英文名为辅，支持按 SKU、中文名、英文名和 IP 搜索；员工可按“箱 / 端（中盒）/ 盒”调整库存，所有数据变更都会留下操作日志。
 
 - 线上地址：<https://harmmy-inventory.vercel.app>
+- GitHub：<https://github.com/weidizheng/Harmmy-Inventory>
 - 当前仓库：`Montery Park`（按业务现有拼写保留）
 - 当前目录：38 个 Best Seller 商品及其私有图片
 - 当前账号：Henry、Terrence、Harmmy（密码由 Supabase Auth 管理，不存放在本仓库）

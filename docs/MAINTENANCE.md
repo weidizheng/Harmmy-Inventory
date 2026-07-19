@@ -18,7 +18,7 @@ git push
 
 生产地址固定为 <https://harmmy-inventory.vercel.app>。
 
-推荐将现有 Vercel 项目连接到 GitHub：Vercel Dashboard → `harmmy-inventory` → Settings → Git → Connect Git Repository。将 Production Branch 设为 `main`。连接后：
+现有 Vercel 项目已经连接到 `weidizheng/Harmmy-Inventory`，Production Branch 使用 `main`。连接后：
 
 - push 到 `main`：自动生产部署；
 - push 到其他分支或 Pull Request：自动生成预览部署；
