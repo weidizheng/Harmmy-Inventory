@@ -1,75 +1,51 @@
 # Harmmy Inventory
 
-[![CI](https://github.com/weidizheng/Harmmy-Inventory/actions/workflows/ci.yml/badge.svg)](https://github.com/weidizheng/Harmmy-Inventory/actions/workflows/ci.yml)
+[打开库存系统](https://harmmy-inventory.vercel.app)
 
-Harmmy 的手机友好型仓库库存系统。系统以中文商品名为主、英文名为辅，支持按 SKU、中文名、英文名和 IP 搜索；员工可按“箱 / 端（中盒）/ 盒”调整库存，所有数据变更都会留下操作日志。
+Harmmy Inventory 是为仓库日常收货、出货和盘点设计的手机友好型库存系统。中文商品名为主要名称，同时支持 SKU、英文名和 IP 搜索。
 
-- 线上地址：<https://harmmy-inventory.vercel.app>
-- GitHub：<https://github.com/weidizheng/Harmmy-Inventory>
-- 当前仓库：`Montery Park`（按业务现有拼写保留）
-- 当前目录：38 个 Best Seller 商品及其私有图片
-- 当前账号：Henry、Terrence、Harmmy（密码由 Supabase Auth 管理，不存放在本仓库）
+## 日常使用
 
-## 已实现功能
+### 查找库存
 
-- Supabase 员工密码登录、启用状态检查和统一权限
-- 商品卡片、私有签名图片及中英文/IP/SKU 搜索
-- 按箱、端、盒批量增加或扣减库存，提交前统一汇总核对
-- 原子库存事务：任一商品会变成负数时，整次操作全部拒绝
-- 手机端新增商品、手动添加新 IP、压缩图片并上传至私有 Storage
-- 商品卡片直接展示原表 Details/Quantity，并可独立编辑资料、箱规和主图
-- 操作日志：人员、时间、商品、库存差异与分页筛选
-- 当前登录人、登录时长、本次会话操作数及退出登录
-- Excel Best Seller 清洗、图片提取和受控导入脚本
+进入“库存”后，可以搜索 SKU、中文名、英文名或 IP，并在以下范围间切换：
 
-## 技术栈
+- 有货商品：默认显示，只看箱、端、盒任一数量大于 0 的商品；
+- 全部商品：包括零库存商品；
+- 无货商品：只看箱、端、盒全部为 0 的商品。
 
-- Next.js 15 App Router、React 19、TypeScript
-- Supabase Auth、PostgreSQL、Row Level Security、Storage
-- Vercel Production
-- Vitest（当前 31 项自动测试）
+每张商品卡片分别显示当前“箱 / 端 / 盒”数量。折合总数只用于快速参考，不会改变真实库存，也不会自动拆箱、拆端或进位。
 
-## 本地启动
+### 调整一个商品
 
-需要 Node.js 20+ 和 pnpm 10+。
+找到商品后点击“调整此商品”，填写本次箱、端、盒变化并核对提交。
 
-```powershell
-git clone <你的 GitHub 仓库地址>
-cd Harmmy_Inventory
-pnpm install
-Copy-Item .env.example .env.local
-pnpm dev
-```
+### 同时调整多个商品
 
-在 `.env.local` 填入 Supabase Project URL 和 Publishable Key，然后打开 <http://localhost:3000/login>。完整步骤见 [本地开发](docs/LOCAL_SETUP.md)。
+点击“开始批量调整”，在多个商品卡片中填写变化。页面底部会持续显示已选择的商品数量和箱、端、盒变化合计。点击“查看汇总并确认”后再次核对；任一商品无法完成时，整张操作单都不会写入。
 
-## 开发检查
+### 新增商品
 
-```powershell
-pnpm lint
-pnpm test
-pnpm build
-```
+进入“新产品”后，可以用手机拍照或选择图片，并填写 SKU、中英文名、IP、类型、尺寸和箱规。新商品初始库存为 0，需要通过正式库存操作增加数量。
 
-每次准备上传或部署前都应执行以上三项。GitHub Actions 也会在每次 push 和 pull request 时自动执行。
+### 查看日志
 
-## 文档
+“日志”以一次提交的操作单为一条记录。首页显示操作人、单号、商品数量、箱端盒变化合计、时间、备注和状态。点击“查看明细”可以核对每件商品的图片、SKU、中文名，以及操作前、变化和操作后的数量。
 
+## 重要规则
+
+- 箱、端、盒是三个独立的物理库存数量；系统不会自动换算。
+- 批量提交全部成功或全部失败，不会只修改一部分商品。
+- 已确认操作不能删除或直接改写；发现错误时请创建新的更正操作并填写原因。
+- 每位员工使用自己的账号，不要共享密码。
+
+## 管理与开发资料
+
+- [本地开发](docs/LOCAL_SETUP.md)
 - [系统架构](docs/ARCHITECTURE.md)
 - [数据库结构](docs/DATA_MODEL.md)
-- [库存计算与操作规则](docs/INVENTORY_RULES.md)
-- [部署与日常维护](docs/MAINTENANCE.md)
-- [首次同步和日常上传 GitHub](docs/GITHUB_SYNC.md)
+- [库存规则](docs/INVENTORY_RULES.md)
+- [部署与维护](docs/MAINTENANCE.md)
 - [员工账号维护](docs/STAFF_ONBOARDING.md)
 - [Excel 导入规范](docs/IMPORT_STANDARD_V1.md)
-- [当前范围与后续计划](docs/REQUIREMENTS.md)
-- [主要技术决策](docs/DECISIONS.md)
-
-## 安全要求
-
-- 仓库应设为 **Private**。
-- 永远不要提交 `.env.local`、Supabase Secret/Service Role Key、员工密码、原始 Excel、导出数据或 `private-import/`。
-- 浏览器只允许使用 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`。
-- 数据库结构只通过 `supabase/migrations/` 中按时间排序的迁移更新，不直接修改旧迁移。
-
-本仓库不包含真实密码、密钥、原始 Excel 和导入中间文件。
+- [GitHub 同步](docs/GITHUB_SYNC.md)
