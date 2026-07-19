@@ -7,7 +7,8 @@ import styles from "./login-form.module.css";
 
 const staffAccounts = {
   Henry: "henryma107@yahoo.com",
-  Terrence: "weidhaobang@gmail.com",
+  Terrence: "weidihaobang@gmail.com",
+  Harmmy: "info@harmmyanime.com",
 } as const;
 
 export function LoginForm() {
